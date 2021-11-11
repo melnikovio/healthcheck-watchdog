@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/healthcheck-exporter/cmd/common"
+	"github.com/healthcheck-watchdog/cmd/common"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"

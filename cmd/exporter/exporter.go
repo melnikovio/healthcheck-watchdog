@@ -3,7 +3,7 @@ package exporter
 import (
 	"fmt"
 
-	"github.com/healthcheck-exporter/cmd/model"
+	"github.com/healthcheck-watchdog/cmd/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	dto "github.com/prometheus/client_model/go"

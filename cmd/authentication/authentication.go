@@ -3,10 +3,11 @@ package authentication
 import (
 	"context"
 	"fmt"
-	"github.com/healthcheck-exporter/cmd/model"
+	"net/http"
+
+	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/clientcredentials"
-	"net/http"
 )
 
 type AuthClient struct {

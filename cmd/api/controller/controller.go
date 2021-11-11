@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/healthcheck-exporter/cmd/common"
-	"github.com/healthcheck-exporter/cmd/healthcheck"
+	"github.com/healthcheck-watchdog/cmd/common"
+	"github.com/healthcheck-watchdog/cmd/healthcheck"
 	log "github.com/sirupsen/logrus"
 )
 

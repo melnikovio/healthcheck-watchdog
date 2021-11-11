@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/healthcheck-exporter/cmd/authentication"
-	"github.com/healthcheck-exporter/cmd/cluster"
-	"github.com/healthcheck-exporter/cmd/exporter"
-	"github.com/healthcheck-exporter/cmd/model"
-	"github.com/healthcheck-exporter/cmd/watchdog"
+	"github.com/healthcheck-watchdog/cmd/authentication"
+	"github.com/healthcheck-watchdog/cmd/cluster"
+	"github.com/healthcheck-watchdog/cmd/exporter"
+	"github.com/healthcheck-watchdog/cmd/model"
+	"github.com/healthcheck-watchdog/cmd/watchdog"
 	log "github.com/sirupsen/logrus"
 )
 

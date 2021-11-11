@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/healthcheck-exporter/cmd/api/controller"
-	"github.com/healthcheck-exporter/cmd/healthcheck"
+	"github.com/healthcheck-watchdog/cmd/api/controller"
+	"github.com/healthcheck-watchdog/cmd/healthcheck"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )

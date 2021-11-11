@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/healthcheck-exporter/cmd/model"
+	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
 )
 

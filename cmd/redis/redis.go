@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	rediscli "github.com/go-redis/redis/v8"
-	"github.com/healthcheck-exporter/cmd/common"
+	"github.com/healthcheck-watchdog/cmd/common"
 	log "github.com/sirupsen/logrus"
 )
 

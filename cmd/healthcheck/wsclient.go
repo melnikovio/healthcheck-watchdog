@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/healthcheck-exporter/cmd/exporter"
+	"github.com/healthcheck-watchdog/cmd/exporter"
 	"github.com/sacOO7/gowebsocket"
 	log "github.com/sirupsen/logrus"
 )

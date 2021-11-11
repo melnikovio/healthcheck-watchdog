@@ -22,8 +22,8 @@ ARG RUN_USER=service
 
 RUN adduser -S -D -H -u 1001 -s /sbin/nologin -G root -g $RUN_USER $RUN_USER
 
-COPY --from=build /go/src/github.com/healthcheck-exporter/service .
-# COPY --from=build /Users/ilya.melnikov/go/src/github.com/healthcheck-exporter/service .
+COPY --from=build /go/src/github.com/healthcheck-watchdog/service .
+# COPY --from=build /Users/ilya.melnikov/go/src/github.com/healthcheck-watchdog/service .
 
 RUN chgrp -R 0 /service && chmod -R g+rX /service
 
