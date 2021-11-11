@@ -1,4 +1,4 @@
-module github.com/healthcheck-exporter
+module github.com/healthcheck-watchdog
 
 go 1.16
 
