@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+
 	"github.com/healthcheck-exporter/cmd/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -15,11 +16,11 @@ type Exporter struct {
 }
 
 type Counter struct {
-	id       string
-	status   prometheus.Gauge
-	downtime prometheus.Gauge
+	id            string
+	status        prometheus.Gauge
+	downtime      prometheus.Gauge
 	messagesCount prometheus.Gauge
-	responseTime prometheus.Gauge
+	responseTime  prometheus.Gauge
 }
 
 func NewExporter(config *model.Config) *Exporter {
@@ -47,11 +48,11 @@ func NewExporter(config *model.Config) *Exporter {
 				Help: fmt.Sprintf("%s время ответа", config.Jobs[i].Description),
 			})
 			counters[i] = Counter{
-				id:       config.Jobs[i].Id,
-				downtime: downtime,
-				status:   status,
+				id:            config.Jobs[i].Id,
+				downtime:      downtime,
+				status:        status,
 				messagesCount: messagesCount,
-				responseTime: responseTime,
+				responseTime:  responseTime,
 			}
 
 			log.Info(fmt.Sprintf("Registered counter %s", config.Jobs[i].Id))
@@ -79,7 +80,7 @@ func (ex *Exporter) SetGauge(id string, value float64) {
 	}
 }
 
-func (ex *Exporter) SetCounter(id string, value int64) {
+func (ex *Exporter) SetCounter(id string) {
 	for i := 0; i < len(ex.counters); i++ {
 		if ex.counters[i].id == id {
 			//val := float64(value)

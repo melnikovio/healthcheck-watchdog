@@ -6,6 +6,12 @@ const (
 	Bullet = "- – - – - – - ░ ▒▓▓█D"
 )
 
+// api
+const (
+	HeaderContentType = "Content-Type"
+	ContentTypeJson   = "application/json"
+)
+
 // redis
 const (
 	RedisFlushAll = "FLUSHALL"

@@ -173,7 +173,7 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 
 		if active {
 			if hc.check(function) {
-				hc.exporter.SetCounter(function.Id, 0)
+				hc.exporter.SetCounter(function.Id)
 				if hc.getTaskOnline(function.Id) {
 					log.Info(fmt.Sprintf("%s: Task status updated (is online?): %t",
 						function.Id, hc.getTask(function.Id).Online))
@@ -364,6 +364,10 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 	return true
 }
 
-func (hc *HealthCheck) Status() *model.Status {
-	return hc.status
+func (hc *HealthCheck) Status() (*model.Status, error) {
+	return hc.status, nil
+}
+
+func (hc *HealthCheck) Ready() error {
+	return hc.cluster.Test()
 }

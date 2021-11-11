@@ -225,12 +225,12 @@ func (wd *Cluster) GetPodMemory(name string, namespace string) ([]int64, error) 
 			// }
 			memQuantity, ok := container.Usage.Memory().AsInt64()
 			if !ok {
-				//return nil, nil
+				log.Error(fmt.Sprintf("error while load memory from pod %s", container.Name))
+			} else {
+				result = append(result, memQuantity)
 			}
 			// msg := fmt.Sprintf("Container Name: %s \n CPU usage: %d \n Memory usage: %d", container.Name, cpuQuantity, memQuantity)
 			// fmt.Println(msg)
-
-			result = append(result, memQuantity)
 		}
 
 	}
@@ -238,7 +238,7 @@ func (wd *Cluster) GetPodMemory(name string, namespace string) ([]int64, error) 
 	return result, nil
 }
 
-func start() error {
+func (wd *Cluster) Test() error {
 	//var kubeconfig *string
 	//if home := homeDir(); home != "" {
 	//	kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")

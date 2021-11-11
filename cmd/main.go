@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
 
 	"github.com/healthcheck-exporter/cmd/api"
 	"github.com/healthcheck-exporter/cmd/authentication"
@@ -20,19 +19,26 @@ import (
 func main() {
 	fmt.Println(common.Logo)
 
-	config := configuration.GetConfiguration()
-	authClient := authentication.NewAuthClient(config)
+	// initialize configuration. panic if error
+	config := configuration.NewConfiguration()
 
-	ex := exporter.NewExporter(config)
+	// initialize auth client. panic if error
+	auth := authentication.NewAuthClient(config)
 
-	cl := cluster.NewCluster()
+	// initialize metrics exporter. panic if error
+	exporter := exporter.NewExporter(config)
 
-	wd := watchdog.NewWatchDog(config, cl)
+	// initialize cluster client. panic if error
+	cluster := cluster.NewCluster()
 
-	hcClient := healthcheck.NewHealthCheck(config, authClient, ex, wd, cl)
+	// initialize watchdog app. panic if error
+	watchdog := watchdog.NewWatchDog(config, cluster)
 
-	// initialize api
-	router := api.NewRouter(hcClient)
+	// initialize healthcheck. panic if error
+	healthcheck := healthcheck.NewHealthCheck(config, auth, exporter, watchdog, cluster)
+
+	// initialize api router
+	router := api.NewRouter(healthcheck)
 
 	// enable CORS
 	corsHandler := cors.New(cors.Options{
