@@ -16,11 +16,12 @@ type Exporter struct {
 }
 
 type Counter struct {
-	id            string
-	status        prometheus.Gauge
-	downtime      prometheus.Gauge
-	messagesCount prometheus.Gauge
-	responseTime  prometheus.Gauge
+	id             string
+	status         prometheus.Gauge
+	downtime       prometheus.Gauge
+	messagesCount  prometheus.Gauge
+	responseTime   prometheus.Gauge
+	watchdogAction prometheus.Gauge
 }
 
 func NewExporter(config *model.Config) *Exporter {
@@ -47,12 +48,17 @@ func NewExporter(config *model.Config) *Exporter {
 				Name: fmt.Sprintf("%s_response_time", config.Jobs[i].Id),
 				Help: fmt.Sprintf("%s время ответа", config.Jobs[i].Description),
 			})
+			watchdogAction := promauto.NewGauge(prometheus.GaugeOpts{
+				Name: fmt.Sprintf("%s_watchdog_action_count", config.Jobs[i].Id),
+				Help: fmt.Sprintf("%s количество срабатываний watchdog", config.Jobs[i].Description),
+			})
 			counters[i] = Counter{
-				id:            config.Jobs[i].Id,
-				downtime:      downtime,
-				status:        status,
-				messagesCount: messagesCount,
-				responseTime:  responseTime,
+				id:             config.Jobs[i].Id,
+				downtime:       downtime,
+				status:         status,
+				messagesCount:  messagesCount,
+				responseTime:   responseTime,
+				watchdogAction: watchdogAction,
 			}
 
 			log.Info(fmt.Sprintf("Registered counter %s", config.Jobs[i].Id))
@@ -127,6 +133,14 @@ func (ex *Exporter) AddCounter(id string, value int64) {
 			if err != nil {
 				log.Error(fmt.Sprintf("Error writing metrics: %s", err.Error()))
 			}
+		}
+	}
+}
+
+func (ex *Exporter) IncWatchdogActionCounter(id string) {
+	for i := range ex.counters {
+		if ex.counters[i].id == id {
+			ex.counters[i].watchdogAction.Inc()
 		}
 	}
 }

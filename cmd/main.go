@@ -32,7 +32,7 @@ func main() {
 	cluster := cluster.NewCluster()
 
 	// initialize watchdog app. panic if error
-	watchdog := watchdog.NewWatchDog(config, cluster)
+	watchdog := watchdog.NewWatchDog(cluster, config)
 
 	// initialize healthcheck. panic if error
 	healthcheck := healthcheck.NewHealthCheck(config, auth, exporter, watchdog, cluster)

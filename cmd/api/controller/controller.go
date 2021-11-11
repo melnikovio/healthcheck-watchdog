@@ -36,7 +36,12 @@ func (api *ApiController) Health(w http.ResponseWriter, _ *http.Request) error {
 
 	// Return result
 	w.Header().Set(common.HeaderContentType, common.ContentTypeJson)
-	json.NewEncoder(w).Encode(status)
+	err = json.NewEncoder(w).Encode(status)
+	if err != nil {
+		log.Error(fmt.Sprintf("The HTTP request failed with error: %s", err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
 
 	return err
 }
@@ -52,7 +57,12 @@ func (api *ApiController) Ready(w http.ResponseWriter, _ *http.Request) error {
 
 	// Return result
 	w.Header().Set(common.HeaderContentType, common.ContentTypeJson)
-	json.NewEncoder(w).Encode(status)
+	err = json.NewEncoder(w).Encode(status)
+	if err != nil {
+		log.Error(fmt.Sprintf("The HTTP request failed with error: %s", err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
 
 	return err
 }

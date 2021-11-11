@@ -15,7 +15,7 @@ type WatchDog struct {
 	config  *model.Config
 }
 
-func NewWatchDog(config *model.Config, cl *cluster.Cluster) *WatchDog {
+func NewWatchDog(cl *cluster.Cluster, config *model.Config) *WatchDog {
 	wd := WatchDog{
 		cluster: cl,
 		redis:   redis.NewRedis(),
@@ -25,23 +25,26 @@ func NewWatchDog(config *model.Config, cl *cluster.Cluster) *WatchDog {
 	return &wd
 }
 
-func (ws *WatchDog) Start(tasks []string) {
+func (ws *WatchDog) Execute(tasks []string) {
 	log.Info(fmt.Sprintf("Started watchdog actions: %v", tasks))
 
-	for i := 0; i < len(tasks); i++ {
-
-		for y := 0; y < len(ws.config.WatchDog.Actions); y++ {
+	for i := range tasks {
+		for y := range ws.config.WatchDog.Actions {
+			var err error
 			if ws.config.WatchDog.Actions[y].Id == tasks[i] {
 				switch ws.config.WatchDog.Actions[y].Type {
 				case "redis":
-					ws.redis.Execute(ws.config.WatchDog.Actions[y].ConnectionString, ws.config.WatchDog.Actions[y].Cmd)
+					err = ws.redis.Execute(ws.config.WatchDog.Actions[y].ConnectionString, ws.config.WatchDog.Actions[y].Cmd)
 				case "deployment_scale_down":
-					ws.cluster.ScaleDown(ws.config.WatchDog.Actions[y].Items, ws.config.WatchDog.Namespace)
+					err = ws.cluster.ScaleDown(ws.config.WatchDog.Actions[y].Items, ws.config.WatchDog.Namespace)
 				case "deployment_scale_up":
-					ws.cluster.ScaleUp(ws.config.WatchDog.Actions[y].Items, ws.config.WatchDog.Namespace)
+					err = ws.cluster.ScaleUp(ws.config.WatchDog.Actions[y].Items, ws.config.WatchDog.Namespace)
 				}
 			}
-		}
 
+			if err != nil {
+				log.Error(fmt.Sprintf("Error in task %s: %s", ws.config.WatchDog.Actions[y].Id, err.Error()))
+			}
+		}
 	}
 }

@@ -198,7 +198,9 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 					(time.Now().Unix()-hc.getTaskRestartTime(function.Id)) > function.WatchDogAction.AwaitAfterRestart {
 
 					log.Info(fmt.Sprintf("Task %s is sent to watchdog", function.Id))
-					hc.watchDog.Start(function.WatchDogAction.Actions)
+					hc.watchDog.Execute(function.WatchDogAction.Actions)
+
+					hc.exporter.IncWatchdogActionCounter(function.Id)
 
 					// for y := 0; y < len(function.WatchDog.Deployments); y++ {
 					// 	err := hc.watchDog.DeletePod(function.WatchDog.Deployments[y], function.WatchDog.Namespace)

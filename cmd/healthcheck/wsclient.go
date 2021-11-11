@@ -111,7 +111,7 @@ func (ws *WsClient) getWsUrl(jobId string, urlAddress string) *Url {
 			time: time.Now().Unix(),
 		}
 		connection.setUrl(urlAddress, url)
-		ws.addUrl(url.url, connection, jobId)
+		ws.addWsUrl(url.url, connection, jobId)
 	}
 
 	return url
@@ -124,13 +124,13 @@ func (ws *WsClient) deleteWsUrl(jobId string, urlAddress string) {
 	}
 }
 
-func (wsClient *WsClient) addUrl(url string, connection *WsConnection, jobId string) {
+func (wsClient *WsClient) addWsUrl(url string, connection *WsConnection, jobId string) {
 	log.Info(fmt.Sprintf("Registering url: %s", url))
 	socket := gowebsocket.New(url)
 
 	socket.OnConnectError = func(err error, socket gowebsocket.Socket) {
 		wsClient.deleteWsUrl(jobId, url)
-		wsClient.getWsUrl(jobId, url)
+		//wsClient.getWsUrl(jobId, url)
 		log.Fatal("Received connect error - ", err)
 	}
 
@@ -155,7 +155,7 @@ func (wsClient *WsClient) addUrl(url string, connection *WsConnection, jobId str
 	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
 		log.Println("Disconnected from server ")
 		wsClient.deleteWsUrl(jobId, url)
-		wsClient.getWsUrl(jobId, url)
+		//wsClient.getWsUrl(jobId, url)
 	}
 
 	socket.Connect()

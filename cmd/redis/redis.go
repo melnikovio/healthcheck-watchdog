@@ -26,7 +26,7 @@ func (redis *Redis) connect(cs string) *rediscli.Client {
 	return r
 }
 
-func (redis *Redis) Execute(cs string, cmd string) {
+func (redis *Redis) Execute(cs string, cmd string) error {
 	log.Info(fmt.Sprintf("Started task on redis: %s", cs))
 
 	client := redis.connect(cs)
@@ -39,4 +39,6 @@ func (redis *Redis) Execute(cs string, cmd string) {
 	}
 
 	log.Info(fmt.Sprintf("%v", result))
+
+	return nil
 }
