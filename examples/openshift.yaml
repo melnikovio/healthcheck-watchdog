@@ -1,0 +1,253 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: healthcheck-exporter
+  annotations:
+    openshift.io/display-name: healthcheck-exporter
+    description: >-
+      Template for deployment healthcheck-exporter
+    tags: zif,healthcheck-exporter
+    iconClass: icon-phalcon
+    openshift.io/long-description: >-
+      This template defines resources needed to application to OpenShift platform
+    openshift.io/provider-display-name: Github
+    template.openshift.io/bindable: 'false'
+message: >-
+  The following service(s) have been created in your project: ${NAME}.
+labels:
+  template: healthcheck-exporter
+  app: ${NAME}
+objects:
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: healthcheck-exporter-config
+    data:
+      config.json: |2
+
+        {
+          "authentication": {
+            "auth_url": "https://keycloak/",
+            "realm": "master",
+            "client_id": "client",
+            "client_secret": "123"
+          },
+          "functions": [
+            {
+              "id": "healthcheck_udl_rtdb_subscription",
+              "desc": "Реальные данные (Подписка)",
+              "type": "http_post",
+              "urls": [
+                "https://url/uid=e5836662-2103-4f80-a526-fe7821c24253"
+              ],
+              "body": "[]",
+              "auth_enabled": true,
+              "timeout": 50
+            },
+            {
+              "id": "healthcheck_udl_rtdb_data_ws",
+              "desc": "Реальные данные (Websocket)",
+              "type": "websocket",
+              "urls": [
+                "wss://url/getintervaldata?seconds=2&uid=e5836662-2103-4f80-a526-fe7821c24253"
+              ],
+              "auth_enabled": false,
+              "timeout": 60
+            },
+            {
+              "id": "healthcheck_udl_dfa_data",
+              "desc": "Архивные данные",
+              "type": "http_get",
+              "urls": [
+                "1https://url/value?time=2021-03-20T13%3A17%3A20.000Z"
+              ],
+              "auth_enabled": true,
+              "timeout": 60
+            },
+            {
+              "id": "healthcheck_zui_static",
+              "desc": "Мнемосхемы (UI)",
+              "type": "http_get",
+              "urls": [
+                "https://url/ru_RU.json"
+              ],
+              "auth_enabled": false,
+              "timeout": 60
+            },
+            {
+              "id": "healthcheck_mnemo_api",
+              "desc": "Мнемосхемы (Backend)",
+              "type": "http_get",
+              "urls": [
+                "https://url"
+              ],
+              "auth_enabled": true,
+              "timeout": 60
+            }
+          ]
+        }
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: ${NAME}
+      annotations:
+        description: Exposes and load balances the application pods
+    spec:
+      ports:
+        - name: process-api
+          port: 80
+          targetPort: 2112
+      selector:
+        name: ${NAME}
+
+  - kind: Route
+    apiVersion: v1
+    metadata:
+      name: ${NAME}
+    spec:
+      host: ${APPLICATION_DOMAIN}
+      to:
+        kind: Service
+        name: ${NAME}
+
+  - kind: Route
+    apiVersion: v1
+    metadata:
+      name: ${NAME}-ssl
+    spec:
+      host: ${APPLICATION_DOMAIN_SSL}
+      to:
+        kind: Service
+        name: ${NAME}
+      tls:
+        termination: edge
+        wildcardPolicy: None
+
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: ${NAME}
+      app: ${NAME}
+      annotations:
+        description: Defines how to deploy the ${NAME} application
+        template.alpha.openshift.io/wait-for-ready: 'true'
+    spec:
+      strategy:
+        type: RollingUpdate
+      triggers:
+        - type: ConfigChange
+      replicas: 1
+      selector:
+        matchLabels:
+          app: ${NAME}
+      template:
+        metadata:
+          name: ${NAME}
+          labels:
+            name: ${NAME}
+            app: ${NAME}
+        spec:
+          imagePullSecrets:
+            - name: "${PULL_SECRET}"
+          volumes:
+            - configMap:
+                defaultMode: 420
+                name: healthcheck-exporter-config
+              name: healthcheck-exporter-config
+          containers:
+            - name: ${NAME}
+              image: ${IMAGE_URL}
+              ports:
+                - containerPort: 80
+              readinessProbe:
+                timeoutSeconds: 3
+                initialDelaySeconds: 1
+                successThreshold: 1
+                failureThreshold: 5
+                httpGet:
+                  path: /metrics
+                  port: 2112
+              livenessProbe:
+                timeoutSeconds: 3
+                initialDelaySeconds: 1
+                successThreshold: 1
+                failureThreshold: 5
+                httpGet:
+                  path: /metrics
+                  port: 2112
+              volumeMounts:
+                - mountPath: /service/config.json
+                  name: healthcheck-exporter-config
+                  subPath: config.json
+              resources:
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - ${NAME}
+                  topologyKey: kubernetes.io/hostname
+          enableServiceLinks: false
+
+parameters:
+  - name: NAME
+    displayName: Name
+    description: The name assigned to all of the frontend objects defined in this template.
+    required: true
+    value: healthcheck-exporter
+  - name: NAMESPACE
+    displayName: Namespace
+    description: The OpenShift Namespace where the ImageStream resides.
+    required: true
+    value: ''
+  - name: MEMORY_LIMIT
+    displayName: Memory Limit
+    description: Maximum amount of memory the container can use.
+    required: true
+    value: 50Mi
+  - name: CPU_LIMIT
+    displayName: Cpu Limit
+    description: Maximum amount of cpu the container can use.
+    required: true
+    value: 50m
+  - name: MEMORY_REQUEST
+    displayName: Memory Request
+    description: Request amount of memory the container can use.
+    required: true
+    value: 50Mi
+  - name: CPU_REQUEST
+    displayName: Cpu Request
+    description: Request amount of cpu the container can use.
+    required: true
+    value: 10m
+  - name: APPLICATION_DOMAIN
+    displayName: Application Hostname
+    description: >-
+      The exposed hostname that will route to the httpd service, if left blank a
+      value will be defaulted.
+    value: ''
+  - name: IMAGE_URL
+    displayName: Image url
+    description: Docker image url for application.
+    required: true
+    value: healthcheck-exporter:0.0.4
+  - name: PULL_SECRET
+    displayName: Pull secret
+    description: Docker image pull secret.
+    required: true
+    value: docker
+  - name: APPLICATION_DOMAIN_SSL
+    displayName: Application Hostname with SSL edge terminations
+    description: >-
+      The exposed hostname that will route to the https service, if left blank a
+      value will be defaulted.
+    value: ''

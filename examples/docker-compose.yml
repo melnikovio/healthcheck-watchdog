@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  healthcheck-exporter:
+    image: healthcheck-exporter:0.0.4
+    ports:
+      - "2112:2112"
+    container_name: healthcheck-exporter
+    hostname: healthcheck-exporter
+
+...
+
