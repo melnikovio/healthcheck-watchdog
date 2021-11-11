@@ -1,7 +1,7 @@
 # Build
 FROM golang:1.17 AS build
 ENV GO111MODULE=on
-WORKDIR /go/src/github.com/healthcheck-exporter
+WORKDIR /go/src/github.com/healthcheck-watchdog
 # WORKDIR /Users/ilya.melnikov/go/src/github.com/healthcheck-exporter
 # WORKDIR /Users/ilya.melnikov/source/github.com/healthcheck-exporter
 COPY go.mod .
