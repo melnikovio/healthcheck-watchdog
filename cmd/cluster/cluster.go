@@ -72,67 +72,82 @@ func NewCluster() *Cluster {
 	return &wd
 }
 
-func (wd *Cluster) ScaleDown(names []string, namespace string) error {
-	var err error
-	for i := 0; i < len(names); i++ {
+// Scale down each deployment in namespace
+func (wd *Cluster) ScaleDown(names []string, namespace string) (err error) {
+	for i := range names {
 		err = wd.scaleDown(names[i], namespace)
+		if err != nil {
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 func (wd *Cluster) scaleDown(name string, namespace string) error {
 	log.Info(fmt.Sprintf("%s scale down %s in %s", common.Bullet, name, namespace))
 
-	s, err := wd.appsClient.Deployments(namespace).
+	// get current scale
+	specs, err := wd.appsClient.Deployments(namespace).
 		GetScale(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(fmt.Sprintf("error while get specs from deployment %s: %s", name, err.Error()))
+		return err
 	}
 
-	sc := *s
-
-	if sc.Spec.Replicas > 0 {
-		wd.replicas[name] = sc.Spec.Replicas
+	// remember scale count
+	if specs.Spec.Replicas > 0 {
+		wd.replicas[name] = specs.Spec.Replicas
 	}
-	sc.Spec.Replicas = 0
+	specs.Spec.Replicas = 0
 
+	// set scale count
 	_, err = wd.appsClient.Deployments(namespace).
-		UpdateScale(context.TODO(), name, &sc, metav1.UpdateOptions{})
+		UpdateScale(context.TODO(), name, specs, metav1.UpdateOptions{})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(fmt.Sprintf("error while set specs from deployment %s: %s", name, err.Error()))
 	}
 
 	//todo wait until down
 
-	return nil
+	return err
 }
 
-func (wd *Cluster) ScaleUp(names []string, namespace string) error {
-	var err error
-	for i := 0; i < len(names); i++ {
+// Scale up each deployment in namespace
+func (wd *Cluster) ScaleUp(names []string, namespace string) (err error) {
+	for i := range names {
 		err = wd.scaleUp(names[i], namespace)
+		if err != nil {
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 func (wd *Cluster) scaleUp(name string, namespace string) error {
 	log.Info(fmt.Sprintf("%s scale up %s in %s", common.Bullet, name, namespace))
 
-	s, err := wd.appsClient.Deployments(namespace).
+	// get deployment specs
+	specs, err := wd.appsClient.Deployments(namespace).
 		GetScale(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(fmt.Sprintf("error while get specs from deployment %s: %s", name, err.Error()))
+		return err
 	}
 
-	sc := *s
-	sc.Spec.Replicas = wd.replicas[name]
+	// restore scale count
+	if wd.replicas[name] == 0 {
+		wd.replicas[name] = 1
+	}
+	specs.Spec.Replicas = wd.replicas[name]
 
+	// scale up deployment
 	_, err = wd.appsClient.Deployments(namespace).
-		UpdateScale(context.TODO(), name, &sc, metav1.UpdateOptions{})
+		UpdateScale(context.TODO(), name, specs, metav1.UpdateOptions{})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(fmt.Sprintf("error while set specs from deployment %s: %s", name, err.Error()))
+		return err
 	}
 
 	return nil
@@ -140,17 +155,6 @@ func (wd *Cluster) scaleUp(name string, namespace string) error {
 
 func (wd *Cluster) DeletePod(name string, namespace string) error {
 	log.Info(fmt.Sprintf("%s killing %s in %s", common.Bullet, name, namespace))
-
-	//// List all Pods in our current Namespace.
-	//pods, err := coreclient.Pods(namespace).List(context.Background(), metav1.ListOptions{})
-	//if err != nil {
-	//	panic(err)
-	//}
-
-	//fmt.Printf("Pods in namespace %s:\n", namespace)
-	//for _, pod := range pods.Items {
-	//	fmt.Printf("  %s\n", pod.Name)
-	//}
 
 	// List all Pods in our current Namespace.
 	pods, err := wd.client.Pods(namespace).List(context.Background(), metav1.ListOptions{
@@ -174,15 +178,14 @@ func (wd *Cluster) DeletePod(name string, namespace string) error {
 }
 
 func (wd *Cluster) GetPodIp(name string, namespace string) ([]string, error) {
-	// List all Pods in our current Namespace.
+	log.Info(fmt.Sprintf("Pods to delete in namespace %s:", namespace))
 	pods, err := wd.client.Pods(namespace).List(context.Background(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("app=%s", name),
 	})
 	if err != nil {
-		log.Error(fmt.Sprintf("Error while list all pods: %s", err.Error()))
+		log.Error(fmt.Sprintf("Error while get pod %s: %s", name, err.Error()))
 	}
 
-	log.Info(fmt.Sprintf("Pods to delete in namespace %s:", namespace))
 	result := make([]string, 0)
 	for i := range pods.Items {
 		result = append(result, pods.Items[i].Status.PodIP)
@@ -192,20 +195,6 @@ func (wd *Cluster) GetPodIp(name string, namespace string) ([]string, error) {
 }
 
 func (wd *Cluster) GetPodMemory(name string, namespace string) ([]int64, error) {
-	// List all Pods in our current Namespace.
-	// pods, err := wd.client.Pods(namespace).List(context.Background(), metav1.ListOptions{
-	// 	LabelSelector: fmt.Sprintf("app=%s", name),
-	// })
-	// if err != nil {
-	// 	log.Error(fmt.Sprintf("Error while list all pods: %s", err.Error()))
-	// }
-
-	// log.Info(fmt.Sprintf("Pods to watch in namespace %s:", namespace))
-	// result := make([]string, 0)
-	// for _, pod := range pods.Items {
-	// 	result = append(result, pod.Status.PodIP)
-	// }
-
 	options := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("app=%s", name),
 	}
@@ -258,7 +247,7 @@ func (wd *Cluster) Test() error {
 	//	return err
 	//}
 
-	namespace := "suep-omp-prod"
+	namespace := ""
 
 	//// get all builds
 	//builds, err := buildV1Client.Builds(namespace).List(context.TODO(), metav1.ListOptions{})
