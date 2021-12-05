@@ -3,6 +3,8 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -352,18 +354,27 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 		}
 
 		resp, err := hc.getHttpClient(function).Do(req)
-		if resp == nil {
-			log.Error(fmt.Sprintf("Empty http post result on url %s", u))
-			return false
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			log.Error(fmt.Sprintf("Invalid response code %d on url %s", resp.StatusCode, u))
-			return false
+		if resp != nil {
+			defer resp.Body.Close()
 		}
 		if err != nil {
 			log.Error(fmt.Sprintf("Error http post request on url %s: %s", u, err.Error()))
 			return false
+		}
+		if resp == nil {
+			log.Error(fmt.Sprintf("Empty http post result on url %s", u))
+			return false
+		}
+		if resp.StatusCode != 200 {
+			log.Error(fmt.Sprintf("Invalid response code %d on url %s", resp.StatusCode, u))
+			return false
+		}
+
+		// should read body to avoid memory leak
+		_, err = io.Copy(ioutil.Discard, resp.Body)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error while read body: %s", err.Error()))
+			return true
 		}
 	}
 
