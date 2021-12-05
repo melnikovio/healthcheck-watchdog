@@ -132,29 +132,29 @@ func (wsClient *WsClient) addWsUrl(url string, connection *WsConnection, jobId s
 		socket.Close()
 		wsClient.deleteWsUrl(jobId, url)
 		//wsClient.getWsUrl(jobId, url)
-		log.Fatal("Received connect error - ", err)
+		log.Error("Received connect error - ", err)
 	}
 
 	socket.OnConnected = func(socket gowebsocket.Socket) {
-		log.Println("Connected to server")
+		log.Info("Connected to server")
 	}
 
 	socket.OnTextMessage = func(message string, socket gowebsocket.Socket) {
-		log.Println(jobId + ": Received message - " + message)
+		log.Info(jobId + ": Received message - " + message)
 		wsClient.prometheus.IncCounter(jobId)
 		connection.setUrlTime(url, time.Now().Unix())
 	}
 
 	socket.OnPingReceived = func(data string, socket gowebsocket.Socket) {
-		log.Println("Received ping - " + data)
+		log.Info("Received ping - " + data)
 	}
 
 	socket.OnPongReceived = func(data string, socket gowebsocket.Socket) {
-		log.Println("Received pong - " + data)
+		log.Info("Received pong - " + data)
 	}
 
 	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
-		log.Println("Disconnected from server ")
+		log.Info("Disconnected from server ")
 		socket.Close()
 		wsClient.deleteWsUrl(jobId, url)
 		//wsClient.getWsUrl(jobId, url)
