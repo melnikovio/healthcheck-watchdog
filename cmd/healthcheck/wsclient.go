@@ -129,6 +129,7 @@ func (wsClient *WsClient) addWsUrl(url string, connection *WsConnection, jobId s
 	socket := gowebsocket.New(url)
 
 	socket.OnConnectError = func(err error, socket gowebsocket.Socket) {
+		socket.Close()
 		wsClient.deleteWsUrl(jobId, url)
 		//wsClient.getWsUrl(jobId, url)
 		log.Fatal("Received connect error - ", err)
@@ -154,6 +155,7 @@ func (wsClient *WsClient) addWsUrl(url string, connection *WsConnection, jobId s
 
 	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
 		log.Println("Disconnected from server ")
+		socket.Close()
 		wsClient.deleteWsUrl(jobId, url)
 		//wsClient.getWsUrl(jobId, url)
 	}

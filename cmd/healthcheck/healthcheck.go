@@ -352,15 +352,19 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 		}
 
 		resp, err := hc.getHttpClient(function).Do(req)
+		if resp == nil {
+			log.Error(fmt.Sprintf("Empty http post result: %d", resp.StatusCode))
+			return false
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			log.Error(fmt.Sprintf("Invalid response code: %d", resp.StatusCode))
+			return false
+		}
 		if err != nil {
 			log.Error(fmt.Sprintf("Error http post request: %s", err.Error()))
 			return false
 		}
-		if resp == nil || resp.StatusCode != 200 {
-			log.Error(fmt.Sprintf("Empty http post result or invalid response code: %d", resp.StatusCode))
-			return false
-		}
-		defer resp.Body.Close()
 	}
 
 	return true
