@@ -356,6 +356,7 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 		resp, err := hc.getHttpClient(function).Do(req)
 		if resp != nil {
 			defer resp.Body.Close()
+			defer readBody(resp)
 		}
 		if err != nil {
 			log.Error(fmt.Sprintf("Error http post request on url %s: %s", u, err.Error()))
@@ -369,16 +370,19 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 			log.Error(fmt.Sprintf("Invalid response code %d on url %s", resp.StatusCode, u))
 			return false
 		}
-
-		// should read body to avoid memory leak
-		_, err = io.Copy(ioutil.Discard, resp.Body)
-		if err != nil {
-			log.Error(fmt.Sprintf("Error while read body: %s", err.Error()))
-			return true
-		}
 	}
 
 	return true
+}
+
+// should read body to avoid memory leak
+func readBody(resp *http.Response) {
+	if resp.Body != nil {
+		_, err := io.Copy(ioutil.Discard, resp.Body)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error while read body: %s", err.Error()))
+		}
+	}
 }
 
 func (hc *HealthCheck) Status() (*model.Status, error) {
