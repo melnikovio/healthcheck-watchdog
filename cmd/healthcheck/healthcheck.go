@@ -355,8 +355,8 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 
 		resp, err := hc.getHttpClient(function).Do(req)
 		if resp != nil {
-			defer resp.Body.Close()
-			defer readBody(resp)
+			defer check(resp)
+			defer cleanup(resp)
 		}
 		if err != nil {
 			log.Error(fmt.Sprintf("Error http post request on url %s: %s", u, err.Error()))
@@ -376,12 +376,23 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 }
 
 // should read body to avoid memory leak
-func readBody(resp *http.Response) {
+func cleanup(resp *http.Response) {
+	defer resp.Body.Close()
 	if resp.Body != nil {
 		_, err := io.Copy(ioutil.Discard, resp.Body)
 		if err != nil {
 			log.Error(fmt.Sprintf("Error while read body: %s", err.Error()))
 		}
+	}
+}
+
+func check(resp *http.Response) {
+	if !resp.Close {
+		log.Trace("Response is not closed")
+	}
+
+	if !resp.Request.Close {
+		log.Trace("Request is not closed")
 	}
 }
 
