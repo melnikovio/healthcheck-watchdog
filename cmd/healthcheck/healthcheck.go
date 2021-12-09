@@ -21,7 +21,7 @@ type HealthCheck struct {
 	config     *model.Config
 	authClient *authentication.AuthClient
 	status     *model.Status
-	wsClient   *WsClient
+	wsClient   *GorillaWsClient
 	exporter   *exporter.Exporter
 	watchDog   *watchdog.WatchDog
 	httpClient *http.Client
@@ -35,7 +35,7 @@ func NewHealthCheck(config *model.Config, authClient *authentication.AuthClient,
 		status: &model.Status{
 			Tasks: make(map[string]*model.Task),
 		},
-		wsClient:   NewWsClient(ex),
+		wsClient:   NewGorillaWsClient(ex),
 		exporter:   ex,
 		watchDog:   wd,
 		httpClient: &http.Client{},
@@ -177,7 +177,7 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 			if hc.check(function) {
 				hc.exporter.SetCounter(function.Id)
 				if hc.getTaskOnline(function.Id) {
-					log.Info(fmt.Sprintf("%s: Task status updated (is online?): %t",
+					log.Debug(fmt.Sprintf("%s: Task status updated (is online?): %t",
 						function.Id, hc.getTask(function.Id).Online))
 				}
 
