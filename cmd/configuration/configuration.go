@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
@@ -22,5 +23,20 @@ func NewConfiguration() (config *model.Config) {
 		panic(err)
 	}
 
+	setLogLevel()
+
 	return config
+}
+
+func setLogLevel() {
+	if v := os.Getenv("LOG_LEVEL"); v != "" {
+		switch v {
+		case "ERROR":
+			log.SetLevel(log.ErrorLevel)
+		case "INFO":
+			log.SetLevel(log.InfoLevel)
+		case "TRACE":
+			log.SetLevel(log.TraceLevel)
+		}
+	}
 }
