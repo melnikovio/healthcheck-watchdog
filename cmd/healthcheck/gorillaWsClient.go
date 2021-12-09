@@ -31,6 +31,8 @@ func (wc *GorillaWsClient) getUrl(jobId string, urlAddress string) *Url {
 	connection := wc.getConnection(jobId)
 	url := connection.getUrl(urlAddress)
 	if url == nil {
+		log.Info(fmt.Sprintf("%s. Creating url: %s", jobId, urlAddress))
+
 		url = &Url{
 			url:  urlAddress,
 			time: time.Now().Unix(),
@@ -40,6 +42,13 @@ func (wc *GorillaWsClient) getUrl(jobId string, urlAddress string) *Url {
 	}
 
 	return url
+}
+
+func (wc *GorillaWsClient) deleteUrl(jobId string, urlAddress string) {
+	connection := wc.getConnection(jobId)
+	if connection.urls[urlAddress] != nil {
+		delete(connection.urls, urlAddress)
+	}
 }
 
 func (wc *GorillaWsClient) getConnection(key string) *WsConnection {
@@ -68,9 +77,10 @@ func (wc *GorillaWsClient) addUrl(jobId string, url string) {
 			if err != nil {
 				c.Close()
 				log.Error(fmt.Sprintf("%s. Received ws (%s) error: %s", jobId, url, err.Error()))
+				wc.deleteUrl(jobId, url)
 				return
 			}
-			log.Info(fmt.Sprintf("%s. Received message: %s", jobId, message))
+			log.Trace(fmt.Sprintf("%s. Received message: %s", jobId, message))
 			wc.prometheus.IncCounter(jobId)
 			wc.getConnection(jobId).setUrlTime(url, time.Now().Unix())
 		}
