@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o service ./cmd/
 # Release
 FROM alpine:3.14.0
 
-RUN apk --no-cache add ca-certificates=20191127-r5
+RUN apk --no-cache add ca-certificates=20211220-r0
 
 WORKDIR /service
 
