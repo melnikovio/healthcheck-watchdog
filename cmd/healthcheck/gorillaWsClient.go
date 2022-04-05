@@ -1,6 +1,7 @@
 package healthcheck
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -81,7 +82,19 @@ func (wc *GorillaWsClient) addUrl(jobId string, url string) {
 				return
 			}
 			log.Trace(fmt.Sprintf("%s. Received message: %s", jobId, message))
-			wc.prometheus.IncCounter(jobId)
+
+			var params string
+			var data[] Object
+			if err := json.Unmarshal(message, &data); err != nil {
+				log.Error(fmt.Sprintf("%s. failed to unmarshal: %s", jobId, message))
+			} else {
+				//todo config
+				if len(data) > 0 && data[0]["uid"] != nil {
+					params = data[0]["uid"].(string)
+				}
+			}
+
+			wc.prometheus.IncCounter(jobId, params)
 			wc.getConnection(jobId).setUrlTime(url, time.Now().Unix())
 		}
 	}()
@@ -90,3 +103,6 @@ func (wc *GorillaWsClient) addUrl(jobId string, url string) {
 func (wc *GorillaWsClient) TimeDifferenceWithLastMessage(jobId string, url string) int64 {
 	return time.Now().Unix() - wc.getUrl(jobId, url).time
 }
+
+//todo
+type Object map[string]interface {}

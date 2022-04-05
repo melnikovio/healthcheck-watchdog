@@ -6,12 +6,10 @@ import (
 
 	"github.com/healthcheck-watchdog/cmd/api"
 	"github.com/healthcheck-watchdog/cmd/authentication"
-	"github.com/healthcheck-watchdog/cmd/cluster"
 	"github.com/healthcheck-watchdog/cmd/common"
 	"github.com/healthcheck-watchdog/cmd/configuration"
 	"github.com/healthcheck-watchdog/cmd/exporter"
 	"github.com/healthcheck-watchdog/cmd/healthcheck"
-	"github.com/healthcheck-watchdog/cmd/watchdog"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,13 +27,13 @@ func main() {
 	exporter := exporter.NewExporter(config)
 
 	// initialize cluster client. panic if error
-	cluster := cluster.NewCluster()
+	//cluster := cluster.NewCluster()
 
 	// initialize watchdog app. panic if error
-	watchdog := watchdog.NewWatchDog(cluster, config)
+	//watchdog := watchdog.NewWatchDog(cluster, config)
 
 	// initialize healthcheck. panic if error
-	healthcheck := healthcheck.NewHealthCheck(config, auth, exporter, watchdog, cluster)
+	healthcheck := healthcheck.NewHealthCheck(config, auth, exporter, nil, nil)
 
 	// initialize api router
 	router := api.NewRouter(healthcheck)
