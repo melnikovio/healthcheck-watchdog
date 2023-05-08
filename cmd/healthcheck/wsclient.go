@@ -141,7 +141,7 @@ func (wsClient *WsClient) addWsUrl(url string, connection *WsConnection, jobId s
 
 	socket.OnTextMessage = func(message string, socket gowebsocket.Socket) {
 		log.Info(jobId + ": Received message - " + message)
-		wsClient.prometheus.IncCounter(jobId)
+		wsClient.prometheus.IncCounter(jobId, "")
 		connection.setUrlTime(url, time.Now().Unix())
 	}
 

@@ -19,7 +19,7 @@ type Counter struct {
 	id             string
 	status         prometheus.Gauge
 	downtime       prometheus.Gauge
-	messagesCount  prometheus.Gauge
+	messagesCount  prometheus.GaugeVec
 	responseTime   prometheus.Gauge
 	watchdogAction prometheus.Gauge
 }
@@ -40,10 +40,11 @@ func NewExporter(config *model.Config) *Exporter {
 				Name: fmt.Sprintf("%s_status", config.Jobs[i].Id),
 				Help: fmt.Sprintf("%s работает (0: нет, 1: да)", config.Jobs[i].Description),
 			})
-			messagesCount := promauto.NewGauge(prometheus.GaugeOpts{
+			//todo config
+			messagesCount := promauto.NewGaugeVec(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("%s_messages_count", config.Jobs[i].Id),
 				Help: fmt.Sprintf("%s количество сообщений", config.Jobs[i].Description),
-			})
+			}, []string{"uid"})
 			responseTime := promauto.NewGauge(prometheus.GaugeOpts{
 				Name: fmt.Sprintf("%s_response_time", config.Jobs[i].Id),
 				Help: fmt.Sprintf("%s время ответа", config.Jobs[i].Description),
@@ -56,7 +57,7 @@ func NewExporter(config *model.Config) *Exporter {
 				id:             config.Jobs[i].Id,
 				downtime:       downtime,
 				status:         status,
-				messagesCount:  messagesCount,
+				messagesCount:  *messagesCount,
 				responseTime:   responseTime,
 				watchdogAction: watchdogAction,
 			}
@@ -70,10 +71,11 @@ func NewExporter(config *model.Config) *Exporter {
 	return &ex
 }
 
-func (ex *Exporter) IncCounter(id string) {
+//todo config
+func (ex *Exporter) IncCounter(id string, param string) {
 	for i := 0; i < len(ex.counters); i++ {
 		if ex.counters[i].id == id {
-			ex.counters[i].messagesCount.Inc()
+			ex.counters[i].messagesCount.With(prometheus.Labels{"uid":param}).Inc()
 		}
 	}
 }
