@@ -1,9 +1,7 @@
 # Build
-FROM golang:1.20.4 AS build
+FROM golang:1.21.4 AS build
 ENV GO111MODULE=on
 WORKDIR /go/src/github.com/healthcheck-watchdog
-# WORKDIR /Users/ilya.melnikov/go/src/github.com/healthcheck-exporter
-# WORKDIR /Users/ilya.melnikov/source/github.com/healthcheck-exporter
 COPY go.mod .
 COPY go.sum .
 COPY cmd ./cmd
@@ -23,7 +21,6 @@ ARG RUN_USER=service
 RUN adduser -S -D -H -u 1001 -s /sbin/nologin -G root -g $RUN_USER $RUN_USER
 
 COPY --from=build /go/src/github.com/healthcheck-watchdog/service .
-# COPY --from=build /Users/ilya.melnikov/go/src/github.com/healthcheck-watchdog/service .
 
 RUN chgrp -R 0 /service && chmod -R g+rX /service
 
