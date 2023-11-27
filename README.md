@@ -1,7 +1,7 @@
 # Healthcheck and Watchdog service
 
 <div style="text-align: left;">
-    <img src="assets/logo.png" width="50px">
+    <img src="assets/logo.png" width="100px">
 </div>
 
 Surveillance and helpchecks service allows you to connect via http/https and ws/wss
