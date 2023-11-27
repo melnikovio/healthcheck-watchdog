@@ -1,6 +1,6 @@
 # Healthcheck and Watchdog service
 
-![alt text](assets/logo.png "Logo")
+![alt text](assets/logo.png "Logo" | width=100)
 
 Surveillance and helpchecks service allows you to connect via http/https and ws/wss
 points and upload information about the answer to prometheus.
