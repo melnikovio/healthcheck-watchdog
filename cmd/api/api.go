@@ -67,9 +67,9 @@ func NewRouter(hc *healthcheck.HealthCheck) *mux.Router {
 	api = controller.ApiController{Hc: hc}
 
 	log.Info(
-		fmt.Sprintf("API Server initialized on route http://localhost/%s...", "metrics"))
+		fmt.Sprintf("API Server initialized on route http://localhost:2112/%s...", "metrics"))
 	log.Info(
-		fmt.Sprintf("Prometheus Server initialized on route http://localhost/%s...", "probe"))
+		fmt.Sprintf("Prometheus Server initialized on route http://localhost:2112/%s...", "probe"))
 
 	return router
 }

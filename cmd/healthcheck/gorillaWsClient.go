@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/healthcheck-watchdog/cmd/authentication"
 	"github.com/healthcheck-watchdog/cmd/exporter"
 	log "github.com/sirupsen/logrus"
 
@@ -16,13 +17,15 @@ type GorillaWsClient struct {
 	mx          sync.Mutex
 	connections map[string]*WsConnection
 	prometheus  *exporter.Exporter
+	authClient *authentication.AuthClient
 }
 
-func NewGorillaWsClient(prometheus *exporter.Exporter) *GorillaWsClient {
+func NewGorillaWsClient(prometheus *exporter.Exporter, authClient *authentication.AuthClient) *GorillaWsClient {
 	connection := make(map[string]*WsConnection)
 	wc := GorillaWsClient{
 		connections: connection,
 		prometheus:  prometheus,
+		authClient: authClient,
 	}
 
 	return &wc
@@ -65,9 +68,23 @@ func (wc *GorillaWsClient) getConnection(key string) *WsConnection {
 	return wc.connections[key]
 }
 
+type AuthRequest struct {
+	AccessToken string `json:"accessToken"`
+}
+
 func (wc *GorillaWsClient) addUrl(jobId string, url string) {
 	log.Info(fmt.Sprintf("%s. Registering url: %s", jobId, url))
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		log.Error(fmt.Sprintf("%s. Received connect error: %s", jobId, err.Error()))
+	}
+
+	//todo depending on config
+	token := wc.authClient.GetToken().AccessToken
+	auth := AuthRequest{AccessToken: token}
+	jsonData, _ := json.Marshal(auth)
+
+	err = c.WriteMessage(websocket.TextMessage, jsonData)
 	if err != nil {
 		log.Error(fmt.Sprintf("%s. Received connect error: %s", jobId, err.Error()))
 	}
@@ -81,7 +98,7 @@ func (wc *GorillaWsClient) addUrl(jobId string, url string) {
 				wc.deleteUrl(jobId, url)
 				return
 			}
-			log.Trace(fmt.Sprintf("%s. Received message: %s", jobId, message))
+			log.Info(fmt.Sprintf("%s. Received message: %s", jobId, message))
 
 			var params string
 			var data[] Object

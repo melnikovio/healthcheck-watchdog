@@ -11,7 +11,7 @@ require (
 	github.com/rs/cors v1.10.1
 	github.com/sacOO7/gowebsocket v0.0.0-20221109081133-70ac927be105
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/oauth2 v0.14.0
+	golang.org/x/oauth2 v0.15.0
 	k8s.io/apimachinery v0.28.4
 	k8s.io/client-go v0.28.4
 	k8s.io/metrics v0.28.4
@@ -45,11 +45,11 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sacOO7/go-logger v0.0.0-20180719173527-9ac9add5a50d // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/term v0.14.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.4.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -57,8 +57,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.28.4 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20231113174909-778a5567bc1e // indirect
-	k8s.io/utils v0.0.0-20231121161247-cf03d44ff3cf // indirect
+	k8s.io/kube-openapi v0.0.0-20231206194836-bf4651e18aa8 // indirect
+	k8s.io/utils v0.0.0-20231127182322-b307cd553661 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect

@@ -35,7 +35,7 @@ func NewHealthCheck(config *model.Config, authClient *authentication.AuthClient,
 		status: &model.Status{
 			Tasks: make(map[string]*model.Task),
 		},
-		wsClient:   NewGorillaWsClient(ex),
+		wsClient:   NewGorillaWsClient(ex, authClient),
 		exporter:   ex,
 		watchDog:   wd,
 		httpClient: &http.Client{},
@@ -175,7 +175,7 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 
 		if active {
 			if hc.check(function) {
-				hc.exporter.SetCounter(function.Id)
+				hc.exporter.SetCounter(function.Id, hc.getTask(function.Id).Online)
 				if hc.getTaskOnline(function.Id) {
 					log.Debug(fmt.Sprintf("%s: Task status updated (is online?): %t",
 						function.Id, hc.getTask(function.Id).Online))
@@ -350,7 +350,9 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 		if function.ResponseTimeout > 0 {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(function.ResponseTimeout)*time.Second)
 			req = req.WithContext(ctx)
-			defer cancel()
+            defer func() {
+                cancel()
+            }()
 		}
 
 		resp, err := hc.getHttpClient(function).Do(req)

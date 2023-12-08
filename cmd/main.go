@@ -6,7 +6,6 @@ import (
 
 	"github.com/healthcheck-watchdog/cmd/api"
 	"github.com/healthcheck-watchdog/cmd/authentication"
-	"github.com/healthcheck-watchdog/cmd/common"
 	"github.com/healthcheck-watchdog/cmd/configuration"
 	"github.com/healthcheck-watchdog/cmd/exporter"
 	"github.com/healthcheck-watchdog/cmd/healthcheck"
@@ -15,8 +14,6 @@ import (
 )
 
 func main() {
-	fmt.Println(common.Logo)
-
 	// initialize configuration. panic if error
 	config := configuration.NewConfiguration()
 

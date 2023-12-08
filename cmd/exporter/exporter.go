@@ -88,9 +88,15 @@ func (ex *Exporter) SetGauge(id string, value float64) {
 	}
 }
 
-func (ex *Exporter) SetCounter(id string) {
+func (ex *Exporter) SetCounter(id string, online bool) {
 	for i := 0; i < len(ex.counters); i++ {
 		if ex.counters[i].id == id {
+			var onlineVal float64
+			if online {
+				onlineVal = 1
+			} else {
+				onlineVal = 0
+			}
 			//val := float64(value)
 			//downtimeMetric := dto.Metric{
 			//	Counter: &dto.Counter{
@@ -111,7 +117,7 @@ func (ex *Exporter) SetCounter(id string) {
 			//	},
 			//}
 			//err = ex.counters[i].status.Write(&statusMetric)
-			ex.counters[i].status.Set(1)
+			ex.counters[i].status.Set(onlineVal)
 			//if err != nil {
 			//	log.Error(fmt.Sprintf("Error writing metrics: %s", err.Error()))
 			//}
