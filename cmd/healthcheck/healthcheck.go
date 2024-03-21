@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -42,24 +41,24 @@ func NewHealthCheck(config *model.Config, authClient *authentication.AuthClient,
 		cluster:    cl,
 	}
 
-	hc.InitTasks()
+	hc.Start()
 
 	return &hc
 }
 
-func (hc *HealthCheck) InitTasks() {
-	for i := 0; i < len(hc.config.Jobs); i++ {
-		hc.InitTask(&hc.config.Jobs[i])
+func (hc *HealthCheck) Start() {
+	for _, job := range hc.config.Jobs {
+		hc.InitTask(&job)
 	}
 
-	for i := 0; i < len(hc.config.Jobs); i++ {
-		go hc.StartTask(&hc.config.Jobs[i])
+	for _, job := range hc.config.Jobs {
+		go hc.StartTask(&job)
 	}
 }
 
 func (hc *HealthCheck) getTask(taskId string) *model.Task {
-	task := hc.getTaskFromMap(taskId)
-	if task == nil {
+	task, found := hc.status.Tasks[taskId]
+	if !found {
 		task = &model.Task{
 			Id:            taskId,
 			Online:        false,
@@ -67,116 +66,108 @@ func (hc *HealthCheck) getTask(taskId string) *model.Task {
 			FailureChecks: 0,
 			RestartTime:   0,
 		}
-		hc.setTaskInMap(taskId, task)
+		hc.status.Tasks[taskId] = task
 	}
 
 	return task
 }
 
-func (hc *HealthCheck) getTaskFromMap(taskId string) *model.Task {
+func (hc *HealthCheck) isTaskOnline(id string) bool {
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
-	task := hc.status.Tasks[taskId]
 
-	return task
-}
-
-func (hc *HealthCheck) getTaskOnline(id string) bool {
 	task := hc.getTask(id)
-
-	hc.status.Mx.Lock()
-	defer hc.status.Mx.Unlock()
 
 	return task.Online
 }
 
 func (hc *HealthCheck) setTaskOnline(id string, value bool) {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	task.Online = value
 }
 
 func (hc *HealthCheck) getTaskSuccessChecks(id string) int {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	return task.SuccessChecks
 }
 
 func (hc *HealthCheck) setTaskSuccessChecks(id string, value int) {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	task.SuccessChecks = value
 }
 
 func (hc *HealthCheck) getTaskFailureChecks(id string) int {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	return task.FailureChecks
 }
 
 func (hc *HealthCheck) setTaskFailureChecks(id string, value int) {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	task.FailureChecks = value
 }
 
 func (hc *HealthCheck) getTaskRestartTime(id string) int64 {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+	
+	task := hc.getTask(id)
 
 	return task.RestartTime
 }
 
 func (hc *HealthCheck) setTaskRestartTime(id string, value int64) {
-	task := hc.getTask(id)
-
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
+
+	task := hc.getTask(id)
 
 	task.RestartTime = value
 }
 
-func (hc *HealthCheck) setTaskInMap(id string, task *model.Task) {
-	hc.status.Mx.Lock()
-	defer hc.status.Mx.Unlock()
-	hc.status.Tasks[id] = task
-}
-
 func (hc *HealthCheck) StartTask(function *model.Job) {
+	log.Info(fmt.Sprintf("Starting task: %s", function.Id))
 	counter := 0
 	//task := hc.getTask(function.Id)
 	for {
 		counter++
 		active := false
 		if function.DependentJob != "" {
-			if hc.getTaskOnline(function.DependentJob) {
-				active = true
+			for {
+				if hc.isTaskOnline(function.DependentJob) {
+					active = true
+					break
+				}
+				time.Sleep(time.Duration(1) * time.Second)
 			}
+			
 		} else {
 			active = true
 		}
 
 		if active {
 			if hc.check(function) {
-				hc.exporter.SetCounter(function.Id, hc.getTask(function.Id).Online)
-				if hc.getTaskOnline(function.Id) {
+				hc.exporter.SetCounter(function.Id, hc.isTaskOnline(function.Id))
+				if hc.isTaskOnline(function.Id) {
 					log.Debug(fmt.Sprintf("%s: Task status updated (is online?): %t",
 						function.Id, hc.getTask(function.Id).Online))
 				}
@@ -224,7 +215,7 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 
 func (hc *HealthCheck) InitTask(function *model.Job) {
 	task := hc.getTask(function.Id)
-	log.Info(fmt.Sprintf("%s: Started task", task.Id))
+	log.Info(fmt.Sprintf("Initialized task: %s", task.Id))
 
 	// if function.Location.Type == "kubernetes" {
 	// 	podIps, err := hc.watchDog.GetPodIp(function.Location.Deployment, function.Location.Namespace)
@@ -285,7 +276,7 @@ func (hc *HealthCheck) checkMemory(function *model.Job) bool {
 
 func (hc *HealthCheck) checkWs(function *model.Job) bool {
 	for _, u := range function.Urls {
-		difference := hc.wsClient.TimeDifferenceWithLastMessage(function.Id, u)
+		difference := hc.wsClient.TimeDifferenceWithLastMessage(function.Id, u, function.ResponseTimeout)
 
 		if difference > function.Timeout {
 			log.Error(fmt.Sprintf("%s: error wss last message exceeded timeout", function.Id))
@@ -350,9 +341,9 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 		if function.ResponseTimeout > 0 {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(function.ResponseTimeout)*time.Second)
 			req = req.WithContext(ctx)
-            defer func() {
-                cancel()
-            }()
+			defer func() {
+				cancel()
+			}()
 		}
 
 		resp, err := hc.getHttpClient(function).Do(req)
@@ -381,7 +372,7 @@ func (hc *HealthCheck) checkHttpPost(function *model.Job) bool {
 func cleanup(resp *http.Response) {
 	defer resp.Body.Close()
 	if resp.Body != nil {
-		_, err := io.Copy(ioutil.Discard, resp.Body)
+		_, err := io.Copy(io.Discard, resp.Body)
 		if err != nil {
 			log.Error(fmt.Sprintf("Error while read body: %s", err.Error()))
 		}

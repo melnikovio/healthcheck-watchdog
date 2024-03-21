@@ -1,29 +1,27 @@
 # Build
-FROM golang:1.21.4 AS build
+FROM golang:1.22.1 AS build
 ENV GO111MODULE=on
+
 WORKDIR /go/src/github.com/healthcheck-watchdog
+RUN useradd -u 1001 -G root -g 0 service
+
 COPY go.mod .
 COPY go.sum .
 COPY cmd ./cmd
+
 RUN update-ca-certificates && \
     go mod vendor
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o service ./cmd/
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o service ./cmd/ && \
+    chgrp -R 0 ./service && chmod -R g+rX ./service
 
 # Release
-FROM alpine:3.19.0
-
-RUN apk --no-cache add ca-certificates
+FROM scratch
 
 WORKDIR /service
 
-ARG RUN_USER=service
-
-RUN adduser -S -D -H -u 1001 -s /sbin/nologin -G root -g $RUN_USER $RUN_USER
-
 COPY --from=build /go/src/github.com/healthcheck-watchdog/service .
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-RUN chgrp -R 0 /service && chmod -R g+rX /service
-
-USER $RUN_USER
+USER service
 
 CMD ["./service"]
