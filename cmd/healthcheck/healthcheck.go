@@ -47,12 +47,12 @@ func NewHealthCheck(config *model.Config, authClient *authentication.AuthClient,
 }
 
 func (hc *HealthCheck) Start() {
-	for _, job := range hc.config.Jobs {
-		hc.InitTask(&job)
+	for i := range hc.config.Jobs {
+		hc.InitTask(&hc.config.Jobs[i])
 	}
 
-	for _, job := range hc.config.Jobs {
-		go hc.StartTask(&job)
+	for i := range hc.config.Jobs {
+		go hc.StartTask(&hc.config.Jobs[i])
 	}
 }
 
@@ -129,7 +129,7 @@ func (hc *HealthCheck) setTaskFailureChecks(id string, value int) {
 func (hc *HealthCheck) getTaskRestartTime(id string) int64 {
 	hc.status.Mx.Lock()
 	defer hc.status.Mx.Unlock()
-	
+
 	task := hc.getTask(id)
 
 	return task.RestartTime
@@ -159,7 +159,7 @@ func (hc *HealthCheck) StartTask(function *model.Job) {
 				}
 				time.Sleep(time.Duration(1) * time.Second)
 			}
-			
+
 		} else {
 			active = true
 		}

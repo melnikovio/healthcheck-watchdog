@@ -122,18 +122,18 @@ func (wc *GorillaWsClient) addUrl(jobId string, url string, responseTimeout int)
 	if responseTimeout != 0 {
 		for {
 			difference := wc.TimeDifferenceWithLastMessage(jobId, url, responseTimeout)
-	
+
 			if difference > int64(responseTimeout) {
-				log.Error(fmt.Sprintf("%s: error wss reached response timeout", jobId))
+				log.Error(fmt.Sprintf("%s: error wss reached response timeout. Closing connection", jobId))
 				err := c.Close()
 				if err != nil {
 					log.Error(fmt.Sprintf("%s. Received ws (%s) error on close: %s", jobId, url, err.Error()))
 				}
 				wc.deleteUrl(jobId, url)
-				return
+				wc.addUrl(jobId, url, responseTimeout)
 			}
-	
-			time.Sleep(1000)
+
+			time.Sleep(time.Duration(1) * time.Second)
 		}
 	}
 }
