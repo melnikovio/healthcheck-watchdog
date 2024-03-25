@@ -3,37 +3,37 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/healthcheck-watchdog/cmd/api"
 	"github.com/healthcheck-watchdog/cmd/authentication"
-	"github.com/healthcheck-watchdog/cmd/common"
+	"github.com/healthcheck-watchdog/cmd/cluster"
 	"github.com/healthcheck-watchdog/cmd/configuration"
 	"github.com/healthcheck-watchdog/cmd/exporter"
 	"github.com/healthcheck-watchdog/cmd/healthcheck"
+	"github.com/healthcheck-watchdog/cmd/watchdog"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	fmt.Println(common.Logo)
-
-	// initialize configuration. panic if error
+	// initialize configuration. panic on error
 	config := configuration.NewConfiguration()
 
-	// initialize auth client. panic if error
-	auth := authentication.NewAuthClient(config)
+	// initialize auth client. panic on error
+	authClient := authentication.NewAuthClient(config)
 
-	// initialize metrics exporter. panic if error
+	// initialize metrics exporter. panic on error
 	exporter := exporter.NewExporter(config)
 
-	// initialize cluster client. panic if error
-	//cluster := cluster.NewCluster()
+	// initialize cluster client. nil on empty config, panic on error
+	cluster := cluster.NewCluster(config)
 
-	// initialize watchdog app. panic if error
-	//watchdog := watchdog.NewWatchDog(cluster, config)
+	// initialize watchdog functions. panic if error
+	watchdog := watchdog.NewWatchDog(cluster, config)
 
 	// initialize healthcheck. panic if error
-	healthcheck := healthcheck.NewHealthCheck(config, auth, exporter, nil, nil)
+	healthcheck := healthcheck.NewHealthCheck(config, authClient, exporter, watchdog, nil)
 
 	// initialize api router
 	router := api.NewRouter(healthcheck)
@@ -45,6 +45,16 @@ func main() {
 		AllowedMethods: []string{"GET"},
 	})
 
-	log.Info(fmt.Sprintf("%v", http.ListenAndServe(":2112",
-		corsHandler.Handler(router)).Error()))
+	// start metrics server
+	server := &http.Server{
+		Addr:         ":2112",
+		Handler:      corsHandler.Handler(router),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+	log.Info(fmt.Sprintf("HTTP server started on http://localhost%s", server.Addr))
+	if err := server.ListenAndServe(); err != nil {
+		log.Error(fmt.Sprintf("HTTP server error: %s", err.Error()))
+		panic(err)
+	}
 }

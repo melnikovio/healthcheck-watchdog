@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/healthcheck-watchdog/cmd/common"
+	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -24,7 +24,13 @@ type Cluster struct {
 	replicas      map[string]int32
 }
 
-func NewCluster() *Cluster {
+func NewCluster(appConfig *model.Config) *Cluster {
+	if appConfig.WatchDog.Namespace == "" && 
+		len(appConfig.WatchDog.Actions) == 0 {
+			log.Info("Missing watchdog configuration. Cluster configuration ignored.")
+			return nil
+		}
+
 	var config *rest.Config
 	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token"); os.IsNotExist(err) {
 		// Instantiate loader for kubeconfig file.
@@ -85,7 +91,7 @@ func (wd *Cluster) ScaleDown(names []string, namespace string) (err error) {
 }
 
 func (wd *Cluster) scaleDown(name string, namespace string) error {
-	log.Info(fmt.Sprintf("%s scale down %s in %s", common.Bullet, name, namespace))
+	log.Info(fmt.Sprintf("scale down %s in %s", name, namespace))
 
 	// get current scale
 	specs, err := wd.appsClient.Deployments(namespace).
@@ -126,7 +132,7 @@ func (wd *Cluster) ScaleUp(names []string, namespace string) (err error) {
 }
 
 func (wd *Cluster) scaleUp(name string, namespace string) error {
-	log.Info(fmt.Sprintf("%s scale up %s in %s", common.Bullet, name, namespace))
+	log.Info(fmt.Sprintf("scale up %s in %s", name, namespace))
 
 	// get deployment specs
 	specs, err := wd.appsClient.Deployments(namespace).
@@ -154,7 +160,7 @@ func (wd *Cluster) scaleUp(name string, namespace string) error {
 }
 
 func (wd *Cluster) DeletePod(name string, namespace string) error {
-	log.Info(fmt.Sprintf("%s killing %s in %s", common.Bullet, name, namespace))
+	log.Info(fmt.Sprintf("killing %s in %s", name, namespace))
 
 	// List all Pods in our current Namespace.
 	pods, err := wd.client.Pods(namespace).List(context.Background(), metav1.ListOptions{

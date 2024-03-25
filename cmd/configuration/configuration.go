@@ -3,15 +3,16 @@ package configuration
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
 )
 
+const configPath = "config.json"
+
 func NewConfiguration() (config *model.Config) {
-	configFile, err := ioutil.ReadFile("./config.json")
+	configFile, err := os.ReadFile(configPath)
 	if err != nil {
 		log.Error(fmt.Sprintf("couldn't load configuration: %s", err.Error()))
 		panic(err)
@@ -19,7 +20,7 @@ func NewConfiguration() (config *model.Config) {
 
 	err = json.Unmarshal(configFile, &config)
 	if err != nil || config == nil {
-		log.Error(fmt.Sprintf("Couldn't parse configuration: %s", err.Error()))
+		log.Error(fmt.Sprintf("couldn't parse configuration: %s", err.Error()))
 		panic(err)
 	}
 
