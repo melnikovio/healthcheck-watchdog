@@ -76,10 +76,11 @@ func NewExporter(config *model.Config) *Exporter {
 	return &ex
 }
 
+//todo config
 func (ex *Exporter) IncCounter(id string, param string) {
 	counter, found := ex.counters[id]
 	if found {
-		counter.messagesCount.With(prometheus.Labels{"uid": param}).Inc()
+		counter.messagesCount.With(prometheus.Labels{"uid":param}).Inc()
 	}
 }
 
