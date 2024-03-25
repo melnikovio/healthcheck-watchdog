@@ -16,6 +16,12 @@ type WatchDog struct {
 }
 
 func NewWatchDog(cl *cluster.Cluster, config *model.Config) *WatchDog {
+	if config.WatchDog.Namespace == "" && 
+		len(config.WatchDog.Actions) == 0 {
+			log.Info("Missing watchdog configuration. Watchdog configuration ignored.")
+			return nil
+	}
+
 	wd := WatchDog{
 		cluster: cl,
 		redis:   redis.NewRedis(),

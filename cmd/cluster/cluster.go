@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/healthcheck-watchdog/cmd/model"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -23,7 +24,13 @@ type Cluster struct {
 	replicas      map[string]int32
 }
 
-func NewCluster() *Cluster {
+func NewCluster(appConfig *model.Config) *Cluster {
+	if appConfig.WatchDog.Namespace == "" && 
+		len(appConfig.WatchDog.Actions) == 0 {
+			log.Info("Missing watchdog configuration. Cluster configuration ignored.")
+			return nil
+		}
+
 	var config *rest.Config
 	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token"); os.IsNotExist(err) {
 		// Instantiate loader for kubeconfig file.
