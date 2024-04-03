@@ -17,3 +17,5 @@ staticcheck
 vendor/
 
 config*.json
+
+.DS_Store

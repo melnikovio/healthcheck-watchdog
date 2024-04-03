@@ -14,6 +14,7 @@ import (
 type Exporter struct {
 	config   *model.Config
 	counters map[string]*Counter
+	Channel chan *model.TaskResult
 }
 
 type Counter struct {
@@ -26,18 +27,18 @@ type Counter struct {
 }
 
 func NewExporter(config *model.Config) *Exporter {
-	ex := Exporter{
-		config: config,
-	}
-
 	if config == nil || config.Jobs == nil {
 		err := errors.New("missing monitoring tasks")
 		log.Error(fmt.Sprintf("Failed to initialize exporter: %s", err.Error()))
-
-		return &ex
+		panic(err)
 	}
 
-	counters := make(map[string]*Counter, len(config.Jobs))
+	exporter := Exporter{
+		config: config,
+		Channel: make(chan *model.TaskResult),
+	}
+
+	exporter.counters = make(map[string]*Counter, len(config.Jobs))
 	for i := 0; i < len(config.Jobs); i++ {
 		downtime := promauto.NewGauge(prometheus.GaugeOpts{
 			Name: fmt.Sprintf("%s_downtime", config.Jobs[i].Id),
@@ -59,7 +60,7 @@ func NewExporter(config *model.Config) *Exporter {
 			Name: fmt.Sprintf("%s_watchdog_action_count", config.Jobs[i].Id),
 			Help: fmt.Sprintf("%s количество срабатываний watchdog", config.Jobs[i].Description),
 		})
-		counters[config.Jobs[i].Id] = &Counter{
+		exporter.counters[config.Jobs[i].Id] = &Counter{
 			id:             config.Jobs[i].Id,
 			downtime:       downtime,
 			status:         status,
@@ -71,10 +72,42 @@ func NewExporter(config *model.Config) *Exporter {
 		log.Info(fmt.Sprintf("Registered counter %s", config.Jobs[i].Id))
 	}
 
-	ex.counters = counters
+	// go exporter.receiver()
+	// Channel for task results
+	go exporter.resultProcessor(exporter.Channel)
 
-	return &ex
+	return &exporter
 }
+
+
+// Process results from tasks
+func (e *Exporter) resultProcessor(resultChan <-chan *model.TaskResult) {
+	for result := range resultChan {
+		log.Info(fmt.Sprintf("Exporter: Processed result %v", result))
+	}
+}
+
+// // Function to receive message
+// func (e *Exporter) Message(message string) {
+// 	select {
+// 	case e.Channel <- message:
+// 		log.Trace(fmt.Sprintf("Received message: %s", message))
+// 	default:
+// 		log.Error("Failed to send message: channel closed")
+// 	}
+// }
+
+// // Channel manager
+// func (e *Exporter) receiver() {
+// 	for {
+// 		msg, ok := <- e.Channel
+// 		if !ok {
+// 			log.Error("Channel closed, exiting receiver")
+// 			return
+// 		}
+// 		fmt.Println("Received message:", msg)
+// 	}
+// }
 
 //todo config
 func (ex *Exporter) IncCounter(id string, param string) {

@@ -13,9 +13,10 @@ type WatchDog struct {
 	cluster *cluster.Cluster
 	redis   *redis.Redis
 	config  *model.Config
+	Channel chan *model.TaskResult
 }
 
-func NewWatchDog(cl *cluster.Cluster, config *model.Config) *WatchDog {
+func NewWatchDog(config *model.Config) *WatchDog {
 	if config.WatchDog.Namespace == "" && 
 		len(config.WatchDog.Actions) == 0 {
 			log.Info("Missing watchdog configuration. Watchdog configuration ignored.")
@@ -23,12 +24,47 @@ func NewWatchDog(cl *cluster.Cluster, config *model.Config) *WatchDog {
 	}
 
 	wd := WatchDog{
-		cluster: cl,
+		// cluster: cl,
 		redis:   redis.NewRedis(),
+		Channel: make(chan *model.TaskResult),
 		config:  config,
 	}
 
+	// go wd.receiver()
+	// Channel for task results
+	go wd.resultProcessor(wd.Channel)
+
 	return &wd
+}
+
+
+// func (wd *WatchDog) Message(message string) {
+// 	select {
+// 	case wd.channel <- message:
+// 		log.Trace("")
+// 	default:
+// 		log.Error("")
+// 	}
+// }
+
+// func (wd *WatchDog) receiver() {
+// 	for {
+// 		// Получаем сообщение из канала
+// 		msg, ok := <- wd.channel
+// 		if !ok {
+// 			log.Error("Channel closed, exiting receiver")
+// 			return
+// 		}
+// 		fmt.Println("Received message:", msg)
+// 	}
+// }
+
+
+// Process results from tasks
+func (ws *WatchDog) resultProcessor(resultChan <-chan *model.TaskResult) {
+	for result := range resultChan {
+		log.Info(fmt.Sprintf("Watchdog: Processed result %v", result))
+	}
 }
 
 func (ws *WatchDog) Execute(tasks []string) {

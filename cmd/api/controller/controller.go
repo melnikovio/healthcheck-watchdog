@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"github.com/healthcheck-watchdog/cmd/common"
-	"github.com/healthcheck-watchdog/cmd/healthcheck"
+	"github.com/healthcheck-watchdog/cmd/manager"
 	log "github.com/sirupsen/logrus"
 )
 
 type ApiController struct {
-	Hc *healthcheck.HealthCheck
+	Manager *manager.Manager
 }
 
 // Health Ping
@@ -27,7 +27,7 @@ func (api *ApiController) Ping(w http.ResponseWriter, _ *http.Request) error {
 
 // Health Status
 func (api *ApiController) Health(w http.ResponseWriter, _ *http.Request) error {
-	status, err := api.Hc.Status()
+	status, err := api.Manager.Status()
 	if err != nil {
 		log.Error(fmt.Sprintf("The HTTP request failed with error: %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func (api *ApiController) Health(w http.ResponseWriter, _ *http.Request) error {
 
 // Health Status
 func (api *ApiController) Ready(w http.ResponseWriter, _ *http.Request) error {
-	status, err := api.Hc.Status()
+	status, err := api.Manager.Status()
 	if err != nil {
 		log.Error(fmt.Sprintf("The HTTP request failed with error: %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)

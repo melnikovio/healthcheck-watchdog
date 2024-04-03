@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/healthcheck-watchdog/cmd/api/controller"
-	"github.com/healthcheck-watchdog/cmd/healthcheck"
+	"github.com/healthcheck-watchdog/cmd/manager"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +23,7 @@ type Routes []Route
 
 var api controller.ApiController
 
-func NewRouter(hc *healthcheck.HealthCheck) *mux.Router {
+func NewRouter(manager *manager.Manager) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
 		var routerHandler http.Handler
@@ -49,7 +49,7 @@ func NewRouter(hc *healthcheck.HealthCheck) *mux.Router {
 		Name("Metrics").
 		Handler(promhttp.Handler())
 
-	api = controller.ApiController{Hc: hc}
+	api = controller.ApiController{Manager: manager}
 
 	log.Info(
 		fmt.Sprintf("API Server initialized on route http://localhost:2112/%s...", "metrics"))

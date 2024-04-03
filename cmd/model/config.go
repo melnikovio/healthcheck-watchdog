@@ -8,6 +8,8 @@ type Config struct {
 	Jobs []Job `json:"jobs,omitempty"`
 
 	WatchDog WatchDog `json:"watchdog,omitempty"`
+
+	LogLevel string `json:"loglevel,omitempty"`
 }
 
 type Authentication struct {
