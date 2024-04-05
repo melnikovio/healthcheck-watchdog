@@ -37,7 +37,7 @@ func main() {
 		AllowedMethods: []string{"GET"},
 	})
 	server := &http.Server{
-		Addr:         ":2112",
+		Addr:         ":8080",
 		Handler:      corsHandler.Handler(router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,

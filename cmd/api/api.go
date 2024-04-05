@@ -113,4 +113,73 @@ var routes = Routes{
 		"health",
 		Handler{H: api.Health},
 	},
+
+	// swagger:operation GET /health/startup Health Health
+	// ---
+	// summary: Health API
+	// description: Returns pong
+	// responses:
+	//   "200":
+	//     description: "pong"
+	//     schema: {
+	//		"type": "string",
+	//	   }
+	//   "401":
+	//     description: "Unauthorized"
+	//   "403":
+	//     description: "Forbidden"
+	//   "500":
+	//     description: "Internal server error"
+	Route{
+		"Health",
+		"GET",
+		"health/startup",
+		Handler{H: api.Health},
+	},
+
+	// swagger:operation GET /health/readiness Health Health
+	// ---
+	// summary: Health API
+	// description: Returns pong
+	// responses:
+	//   "200":
+	//     description: "pong"
+	//     schema: {
+	//		"type": "string",
+	//	   }
+	//   "401":
+	//     description: "Unauthorized"
+	//   "403":
+	//     description: "Forbidden"
+	//   "500":
+	//     description: "Internal server error"
+	Route{
+		"Health",
+		"GET",
+		"health/readiness",
+		Handler{H: api.Health},
+	},
+
+	// swagger:operation GET /health/liveness Health Health
+	// ---
+	// summary: Health API
+	// description: Returns pong
+	// responses:
+	//   "200":
+	//     description: "pong"
+	//     schema: {
+	//		"type": "string",
+	//	   }
+	//   "401":
+	//     description: "Unauthorized"
+	//   "403":
+	//     description: "Forbidden"
+	//   "500":
+	//     description: "Internal server error"
+	Route{
+		"Health",
+		"GET",
+		"health/liveness",
+		Handler{H: api.Health},
+	},
 }

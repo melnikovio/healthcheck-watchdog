@@ -78,6 +78,16 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 	c, _, err := websocket.DefaultDialer.Dial(job.Url, nil)
 	if err != nil {
 		log.Error(fmt.Sprintf("%s. Received connect error: %s", job.Id, err.Error()))
+
+		wc.connections.Delete(model.NewConnection(job.Id, job.Url))
+		result := &model.TaskResult{
+			Id:       job.Id,
+			Result:   false,
+			Running:  false,
+		}
+		channel <- result
+
+		return nil
 	}
 
 	if job.AuthEnabled {
