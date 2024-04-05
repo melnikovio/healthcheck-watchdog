@@ -13,20 +13,20 @@ type WatchDog struct {
 	cluster *cluster.Cluster
 	redis   *redis.Redis
 	config  *model.Config
-	Channel chan *model.TaskResult
+	Channel chan model.TaskStatus
 }
 
 func NewWatchDog(config *model.Config) *WatchDog {
-	if config.WatchDog.Namespace == "" && 
+	if config.WatchDog.Namespace == "" &&
 		len(config.WatchDog.Actions) == 0 {
-			log.Info("Missing watchdog configuration. Watchdog configuration ignored.")
-			return nil
+		log.Info("Missing watchdog configuration. Watchdog configuration ignored.")
+		return nil
 	}
 
 	wd := WatchDog{
 		// cluster: cl,
 		redis:   redis.NewRedis(),
-		Channel: make(chan *model.TaskResult),
+		Channel: make(chan model.TaskStatus),
 		config:  config,
 	}
 
@@ -36,7 +36,6 @@ func NewWatchDog(config *model.Config) *WatchDog {
 
 	return &wd
 }
-
 
 // func (wd *WatchDog) Message(message string) {
 // 	select {
@@ -59,9 +58,8 @@ func NewWatchDog(config *model.Config) *WatchDog {
 // 	}
 // }
 
-
 // Process results from tasks
-func (ws *WatchDog) resultProcessor(resultChan <-chan *model.TaskResult) {
+func (ws *WatchDog) resultProcessor(resultChan <-chan model.TaskStatus) {
 	for result := range resultChan {
 		log.Info(fmt.Sprintf("Watchdog: Processed result %v", result))
 	}

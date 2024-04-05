@@ -17,7 +17,7 @@ type KubernetesClient struct {
 	client        *corev1client.CoreV1Client
 	appsClient    *appsv1client.AppsV1Client
 	metricsClient *metrics.Clientset
-	config *model.Config
+	config        *model.Config
 }
 
 func NewKubernetesClient(config *model.Config) (*KubernetesClient, error) {
@@ -63,11 +63,11 @@ func NewKubernetesClient(config *model.Config) (*KubernetesClient, error) {
 		return nil, err
 	}
 
-	kc := KubernetesClient {
+	kc := KubernetesClient{
 		client:        coreClient,
 		appsClient:    appsClient,
 		metricsClient: metricsClient,
-		config: config,
+		config:        config,
 	}
 
 	return &kc, nil
@@ -84,7 +84,7 @@ func (kc *KubernetesClient) Execute(job *model.Job, channel chan *model.TaskResu
 		r := model.TaskResult{
 			Duration: result[0],
 		}
-		
+
 		channel <- &r
 	}
 }

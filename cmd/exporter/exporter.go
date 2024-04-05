@@ -1,166 +1,121 @@
 package exporter
 
 import (
-	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/healthcheck-watchdog/cmd/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	dto "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 )
 
 type Exporter struct {
-	config   *model.Config
-	counters map[string]*Counter
-	Channel chan *model.TaskResult
+	config       *model.Config
+	jobsCounters map[string]*Counter
+	Channel      chan model.TaskStatus
+	mutex        sync.Mutex
 }
 
 type Counter struct {
-	id             string
+	job            model.Job
 	status         prometheus.Gauge
 	downtime       prometheus.Gauge
 	messagesCount  prometheus.GaugeVec
 	responseTime   prometheus.Gauge
+	failedAttempts prometheus.Gauge
 	watchdogAction prometheus.Gauge
 }
 
 func NewExporter(config *model.Config) *Exporter {
-	if config == nil || config.Jobs == nil {
-		err := errors.New("missing monitoring tasks")
-		log.Error(fmt.Sprintf("Failed to initialize exporter: %s", err.Error()))
-		panic(err)
-	}
-
 	exporter := Exporter{
-		config: config,
-		Channel: make(chan *model.TaskResult),
+		config:  config,
+		Channel: make(chan model.TaskStatus),
 	}
 
-	exporter.counters = make(map[string]*Counter, len(config.Jobs))
-	for i := 0; i < len(config.Jobs); i++ {
+	// Register counters
+	exporter.jobsCounters = make(map[string]*Counter, len(config.Jobs))
+	for _, job := range config.Jobs {
 		downtime := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_downtime", config.Jobs[i].Id),
-			Help: config.Jobs[i].Description,
+			Name: fmt.Sprintf("%s_downtime", job.Id),
+			Help: job.Description,
 		})
 		status := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_status", config.Jobs[i].Id),
-			Help: fmt.Sprintf("%s работает (0: нет, 1: да)", config.Jobs[i].Description),
+			Name: fmt.Sprintf("%s_status", job.Id),
+			Help: fmt.Sprintf("%s is working (0: no, 1: yes)", job.Description),
 		})
 		messagesCount := promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_messages_count", config.Jobs[i].Id),
-			Help: fmt.Sprintf("%s количество сообщений", config.Jobs[i].Description),
+			Name: fmt.Sprintf("%s_messages_count", job.Id),
+			Help: fmt.Sprintf("%s amount of received messages", job.Description),
 		}, []string{"uid"})
 		responseTime := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_response_time", config.Jobs[i].Id),
-			Help: fmt.Sprintf("%s время ответа", config.Jobs[i].Description),
+			Name: fmt.Sprintf("%s_response_time", job.Id),
+			Help: fmt.Sprintf("%s response time length", job.Description),
+		})
+		failedAttempts := promauto.NewGauge(prometheus.GaugeOpts{
+			Name: fmt.Sprintf("%s_failed_attempts_count", job.Id),
+			Help: fmt.Sprintf("%s failed attempts count", job.Description),
 		})
 		watchdogAction := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_watchdog_action_count", config.Jobs[i].Id),
-			Help: fmt.Sprintf("%s количество срабатываний watchdog", config.Jobs[i].Description),
+			Name: fmt.Sprintf("%s_watchdog_action_count", job.Id),
+			Help: fmt.Sprintf("%s amount of watchdog actions", job.Description),
 		})
-		exporter.counters[config.Jobs[i].Id] = &Counter{
-			id:             config.Jobs[i].Id,
+		exporter.jobsCounters[job.Id] = &Counter{
+			job:            job,
 			downtime:       downtime,
 			status:         status,
 			messagesCount:  *messagesCount,
 			responseTime:   responseTime,
+			failedAttempts: failedAttempts,
 			watchdogAction: watchdogAction,
 		}
 
-		log.Info(fmt.Sprintf("Registered counter %s", config.Jobs[i].Id))
+		log.Info(fmt.Sprintf("Registered counters for job %s", job.Id))
 	}
 
-	// go exporter.receiver()
 	// Channel for task results
 	go exporter.resultProcessor(exporter.Channel)
 
 	return &exporter
 }
 
-
 // Process results from tasks
-func (e *Exporter) resultProcessor(resultChan <-chan *model.TaskResult) {
+func (ex *Exporter) resultProcessor(resultChan <-chan model.TaskStatus) {
 	for result := range resultChan {
 		log.Info(fmt.Sprintf("Exporter: Processed result %v", result))
+		ex.setCounters(&result)
 	}
 }
 
-// // Function to receive message
-// func (e *Exporter) Message(message string) {
-// 	select {
-// 	case e.Channel <- message:
-// 		log.Trace(fmt.Sprintf("Received message: %s", message))
-// 	default:
-// 		log.Error("Failed to send message: channel closed")
-// 	}
-// }
+func (ex *Exporter) setCounters(status *model.TaskStatus) {
+	ex.mutex.Lock()
+	defer ex.mutex.Unlock()
 
-// // Channel manager
-// func (e *Exporter) receiver() {
-// 	for {
-// 		msg, ok := <- e.Channel
-// 		if !ok {
-// 			log.Error("Channel closed, exiting receiver")
-// 			return
-// 		}
-// 		fmt.Println("Received message:", msg)
-// 	}
-// }
-
-//todo config
-func (ex *Exporter) IncCounter(id string, param string) {
-	counter, found := ex.counters[id]
+	counters, found := ex.jobsCounters[status.Id]
 	if found {
-		counter.messagesCount.With(prometheus.Labels{"uid":param}).Inc()
-	}
-}
-
-func (ex *Exporter) SetGauge(id string, value float64) {
-	counter, found := ex.counters[id]
-	if found {
-		counter.responseTime.Set(value)
-	}
-}
-
-func (ex *Exporter) SetCounter(id string, online bool) {
-	counter, found := ex.counters[id]
-	if found {
-		var onlineVal float64
-		if online {
-			onlineVal = 1
+		if status.Status {
+			counters.downtime.Set(0)
 		} else {
-			onlineVal = 0
+			counters.downtime.Add(float64(counters.job.Timeout))
+			counters.failedAttempts.Inc()
 		}
-		counter.downtime.Set(0)
-
-		counter.status.Set(onlineVal)
-	}
-}
-
-func (ex *Exporter) AddCounter(id string, value int64) {
-	counter, found := ex.counters[id]
-	if found {
-		counter.downtime.Add(float64(value))
-
-		// todo what is this?
-		val2 := float64(0)
-		statusMetric := dto.Metric{
-			Counter: &dto.Counter{
-				Value: &val2,
-			},
+		counters.status.Set(boolToFloat64(status.Status))
+		if counters.job.Type == "websocket" {
+			if status.Status && status.LastResult.Parameters != nil {
+				counters.messagesCount.With(
+					prometheus.Labels{"uid": status.LastResult.Parameters["uid"].(string)}).Inc()
+			}
 		}
-		err := counter.status.Write(&statusMetric)
-		if err != nil {
-			log.Error(fmt.Sprintf("Error writing metrics: %s", err.Error()))
+		counters.responseTime.Set(float64(status.LastResult.Duration))
+		if status.Watchdog {
+			counters.watchdogAction.Inc()
 		}
 	}
 }
 
-func (ex *Exporter) IncWatchdogActionCounter(id string) {
-	counter, found := ex.counters[id]
-	if found {
-		counter.watchdogAction.Inc()
+func boolToFloat64(b bool) float64 {
+	if b {
+		return 1.0
 	}
+	return 0.0
 }

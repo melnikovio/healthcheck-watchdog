@@ -18,14 +18,14 @@ import (
 type HttpClient struct {
 	authClient *authentication.AuthClient
 	httpClient *http.Client
-	config *model.Config
+	config     *model.Config
 }
 
 func NewHttpClient(authClient *authentication.AuthClient, config *model.Config) *HttpClient {
 	return &HttpClient{
 		authClient: authClient,
 		httpClient: &http.Client{},
-		config: config,
+		config:     config,
 	}
 }
 
@@ -46,9 +46,9 @@ func (hc *HttpClient) Execute(job *model.Job, channel chan *model.TaskResult) {
 
 func (hc *HttpClient) request(job *model.Job, method string, url string) *model.TaskResult {
 	var requestResult bool
-	
+
 	start := time.Now()
-	
+
 	var body *strings.Reader
 	if job.Body != "" {
 		body = strings.NewReader(job.Body)
@@ -62,12 +62,13 @@ func (hc *HttpClient) request(job *model.Job, method string, url string) *model.
 	}
 
 	result := &model.TaskResult{
-		Id: job.Id,
+		Id:      job.Id,
+		Running: false,
 		Http: model.Http{
 			Url: url,
 		},
 		Duration: int64(time.Since(start) / time.Millisecond),
-		Result: requestResult,
+		Result:   requestResult,
 	}
 
 	log.Info(fmt.Sprintf("%s:%s %s", job.Id, url, time.Since(start)))

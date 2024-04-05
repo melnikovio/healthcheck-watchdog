@@ -18,7 +18,7 @@ func main() {
 	// initialize configuration. panic on error
 	config := configuration.NewConfiguration()
 
-	// initialize metrics exporter
+	// initialize metrics exporter. panic on error
 	exporter := exporter.NewExporter(config)
 
 	// initialize watchdog module

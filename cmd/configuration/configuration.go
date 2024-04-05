@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -20,14 +21,34 @@ func NewConfiguration() (config *model.Config) {
 	}
 
 	err = json.Unmarshal(configFile, &config)
-	if err != nil || config == nil {
+	if err != nil {
 		log.Error(fmt.Sprintf("couldn't parse configuration: %s", err.Error()))
+		panic(err)
+	}
+
+	if err = validate(config); err != nil {
+		log.Error(fmt.Sprintf("Failed to initialize exporter: %s", err.Error()))
 		panic(err)
 	}
 
 	setLogLevel(config)
 
 	return config
+}
+
+func validate(config *model.Config) error {
+	var err error
+	if config == nil {
+		err = errors.New("empty configuration")
+		return err
+	}
+
+	if config.Jobs == nil || len(config.Jobs) == 0 {
+		err = errors.New("missing monitoring tasks")
+		return err
+	}
+
+	return nil
 }
 
 func setLogLevel(config *model.Config) {

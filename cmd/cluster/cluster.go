@@ -25,11 +25,11 @@ type Cluster struct {
 }
 
 func NewCluster(appConfig *model.Config) *Cluster {
-	if appConfig.WatchDog.Namespace == "" && 
+	if appConfig.WatchDog.Namespace == "" &&
 		len(appConfig.WatchDog.Actions) == 0 {
-			log.Info("Missing watchdog configuration. Cluster configuration ignored.")
-			return nil
-		}
+		log.Info("Missing watchdog configuration. Cluster configuration ignored.")
+		return nil
+	}
 
 	var config *rest.Config
 	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token"); os.IsNotExist(err) {

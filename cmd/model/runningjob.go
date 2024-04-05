@@ -6,7 +6,7 @@ type RunningJob struct {
 }
 
 func CreateRunningJob(job *Job, url string) *RunningJob {
-	runningJob := RunningJob {
+	runningJob := RunningJob{
 		Job: *job,
 		Url: url,
 	}

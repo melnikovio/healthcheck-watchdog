@@ -36,7 +36,7 @@ func (wd *KubernetesClient) scaleDown(name string, namespace string) error {
 
 	// remember scale count
 	if specs.Spec.Replicas > 0 {
-	//	wd.replicas[name] = specs.Spec.Replicas
+		//	wd.replicas[name] = specs.Spec.Replicas
 	}
 	specs.Spec.Replicas = 0
 
@@ -78,7 +78,7 @@ func (wd *KubernetesClient) scaleUp(name string, namespace string) error {
 
 	// restore scale count
 	// if wd.replicas[name] == 0 {
-		// wd.replicas[name] = 1
+	// wd.replicas[name] = 1
 	// }
 	// specs.Spec.Replicas = wd.replicas[name]
 
@@ -138,7 +138,7 @@ func (wd *KubernetesClient) GetPodMemory(name string, namespace string) ([]int64
 	options := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("app=%s", name),
 	}
-	podMetrics, err := 
+	podMetrics, err :=
 		wd.metricsClient.MetricsV1beta1().PodMetricses(namespace).List(context.Background(), options)
 	if err != nil {
 		fmt.Println("Error:", err)

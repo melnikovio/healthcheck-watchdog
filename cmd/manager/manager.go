@@ -19,35 +19,35 @@ import (
 
 // Task executor module
 type Manager struct {
-	exporter *exporter.Exporter
-	watchdog *watchdog.WatchDog
-	config *model.Config
+	exporter  *exporter.Exporter
+	watchdog  *watchdog.WatchDog
+	config    *model.Config
 	executors map[string]clients.Executor
-	jobs map[string]*model.SchedulerTask
-	mutex sync.Mutex
+	Jobs      map[string]*model.TaskStatus
+	mutex     sync.Mutex
 }
 
-// Launch task executor 
-func Start(exporter *exporter.Exporter, 
+// Launch task executor
+func Start(exporter *exporter.Exporter,
 	watchdog *watchdog.WatchDog, config *model.Config) {
-		NewManager(exporter, watchdog, config)
+	NewManager(exporter, watchdog, config)
 }
 
-func NewManager(exporter *exporter.Exporter, 
+func NewManager(exporter *exporter.Exporter,
 	watchdog *watchdog.WatchDog, config *model.Config) *Manager {
 	executor := &Manager{
-		config: config,
+		config:    config,
 		executors: make(map[string]clients.Executor),
-		jobs: make(map[string]*model.SchedulerTask),
-		exporter: exporter,
-		watchdog: watchdog,
+		Jobs:      make(map[string]*model.TaskStatus),
+		exporter:  exporter,
+		watchdog:  watchdog,
 	}
 
 	authClient := authentication.NewAuthClient(config)
 
-	httpClient := 
+	httpClient :=
 		httpclient.NewHttpClient(authClient, config)
-	websocketClient := 
+	websocketClient :=
 		wsclient.NewWsClient(authClient, config)
 	kubernetesClient, err :=
 		k8sclient.NewKubernetesClient(config)
@@ -59,40 +59,42 @@ func NewManager(exporter *exporter.Exporter,
 	executor.executors["http_post"] = httpClient
 	executor.executors["websocket"] = websocketClient
 
-	executor.run()
+	go executor.run()
 
 	return executor
 }
 
 // Get task
-func (m *Manager) getTask(key string) *model.SchedulerTask {
+func (m *Manager) GetTask(key string) *model.TaskStatus {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.jobs[key]
+	return m.Jobs[key]
 }
 
 // Update task
-func (m *Manager) createOrUpdateTask(key string, updater func(*model.SchedulerTask)) {
+func (m *Manager) CreateOrUpdateTask(key string, updater func(*model.TaskStatus)) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	task, ok := m.jobs[key]
+	task, ok := m.Jobs[key]
 	if !ok {
-		task = &model.SchedulerTask{
+		task = &model.TaskStatus{
 			Id: key,
 		}
-		m.jobs[key] = task
-	}	
+		m.Jobs[key] = task
+	}
 
 	updater(task)
 }
 
+// Runner
 func (m *Manager) run() {
 	// Channel for task results
 	resultChan := make(chan *model.TaskResult)
 	go m.resultProcessor(resultChan)
 
+	// Infinite runner
 	for {
 		for i := range m.config.Jobs {
 			if m.isTaskShoudRun(&m.config.Jobs[i]) {
@@ -104,8 +106,9 @@ func (m *Manager) run() {
 	}
 }
 
+// Check if task should run
 func (m *Manager) isTaskShoudRun(job *model.Job) bool {
-	task := m.getTask(job.Id)
+	task := m.GetTask(job.Id)
 
 	// check if currently running
 	if task != nil && task.Running {
@@ -114,13 +117,13 @@ func (m *Manager) isTaskShoudRun(job *model.Job) bool {
 
 	// check dependent job and return false if not running
 	if job.DependentJob != "" {
-		dependentJob := m.getTask(job.DependentJob)
-		if dependentJob == nil || !dependentJob.LastStatus {
+		dependentJob := m.GetTask(job.DependentJob)
+		if dependentJob == nil || !dependentJob.Status {
 			log.Info("Dependent job not ready")
 			return false
 		}
 	}
-	
+
 	// if task never run - allow to run
 	if task == nil {
 		return true
@@ -131,7 +134,7 @@ func (m *Manager) isTaskShoudRun(job *model.Job) bool {
 	return diff >= int64(job.Timeout)
 }
 
-// Process task to clients
+// Process task to executors
 func (m *Manager) processTask(job *model.Job, resultChan chan *model.TaskResult) {
 	// Searching for clients
 	client, ok := m.executors[job.Type]
@@ -141,7 +144,7 @@ func (m *Manager) processTask(job *model.Job, resultChan chan *model.TaskResult)
 	}
 
 	// Update task
-	m.createOrUpdateTask(job.Id, func(task *model.SchedulerTask) {
+	m.CreateOrUpdateTask(job.Id, func(task *model.TaskStatus) {
 		task.Running = true
 	})
 
@@ -154,21 +157,23 @@ func (m *Manager) resultProcessor(resultChan <-chan *model.TaskResult) {
 	for result := range resultChan {
 		log.Info(fmt.Sprintf("Manager: Processed result %v", result))
 
-		m.createOrUpdateTask(result.Id, func(task *model.SchedulerTask) {
-			task.Running = false
+		m.CreateOrUpdateTask(result.Id, func(task *model.TaskStatus) {
+			task.Running = result.Running
 			task.LastCall = time.Now().Unix()
-			task.LastStatus = result.Result
+			task.Status = result.Result
+			task.LastResult = result
 		})
 
 		if m.exporter != nil {
-			m.exporter.Channel<- result
+			m.exporter.Channel <- *m.GetTask(result.Id)
 		}
 		if m.watchdog != nil {
-			m.watchdog.Channel<- result
+			m.watchdog.Channel <- *m.GetTask(result.Id)
 		}
 	}
 }
 
+// Get status for healthcheck
 func (m *Manager) Status() (bool, error) {
 	return true, nil
 }

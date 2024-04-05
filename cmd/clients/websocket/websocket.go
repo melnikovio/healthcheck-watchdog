@@ -14,21 +14,21 @@ import (
 
 type WsClient struct {
 	authClient  *authentication.AuthClient
-	config *model.Config
+	config      *model.Config
 	connections *Connections
 }
 
 func NewWsClient(authClient *authentication.AuthClient, config *model.Config) *WsClient {
 	return &WsClient{
-		authClient: authClient,
-		config: config,
+		authClient:  authClient,
+		config:      config,
 		connections: NewConnections(),
 	}
 }
 
 // SafeMap представляет потокобезопасную map[string]string
 type Connections struct {
-	mu   sync.RWMutex
+	mu          sync.RWMutex
 	connections map[model.Connection]*websocket.Conn
 }
 
@@ -83,13 +83,13 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 	if job.AuthEnabled {
 		auth := model.AuthRequest{AccessToken: wc.authClient.GetToken().AccessToken}
 		authMessage, _ := json.Marshal(auth)
-	
+
 		err = c.WriteMessage(websocket.TextMessage, authMessage)
 		if err != nil {
 			log.Error(fmt.Sprintf("%s. Received authentication error: %s", job.Id, err.Error()))
 		}
 	}
-	
+
 	var resetTimer func()
 	if job.ResponseTimeout != 0 {
 		// Переменная для хранения таймера
@@ -100,11 +100,14 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 			if timer != nil {
 				timer.Stop()
 			}
-			timer = time.AfterFunc(time.Duration(job.ResponseTimeout) * time.Second, func() {
+			timer = time.AfterFunc(time.Duration(job.ResponseTimeout)*time.Second, func() {
 				log.Error(
-					fmt.Sprintf("%s. No messages received in %d seconds. Closing connection.", 
+					fmt.Sprintf("%s. No messages received in %d seconds. Closing connection.",
 						job.Id, job.ResponseTimeout))
-				c.Close()
+				err := c.Close()
+				if err != nil {
+					log.Error(fmt.Sprintf("%s. Received ws (%s) error on close: %s", job.Id, job.Url, err.Error()))
+				}
 
 				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
 			})
@@ -112,6 +115,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 	}
 
 	go func() {
+		start := time.Now()
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
@@ -124,7 +128,15 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 				log.Error(fmt.Sprintf("%s. Websocket closed", job.Id))
 
 				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
-				
+
+				result := &model.TaskResult{
+					Id:       job.Id,
+					Result:   false,
+					Running:  false,
+					Duration: time.Since(start).Milliseconds(),
+				}
+				channel <- result
+
 				return
 			}
 
@@ -134,7 +146,12 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 				resetTimer()
 			}
 
-			result := &model.TaskResult{}
+			result := &model.TaskResult{
+				Id:       job.Id,
+				Result:   true,
+				Running:  true,
+				Duration: time.Since(start).Milliseconds(),
+			}
 
 			var data []map[string]interface{}
 			if err := json.Unmarshal(message, &data); err != nil {
@@ -146,10 +163,10 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 			}
 
 			channel <- result
+
+			start = time.Now()
 		}
 	}()
-
-	
 
 	return c
 }
