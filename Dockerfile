@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.22.1 AS build
+FROM golang:1.22.2 AS build
 ENV GO111MODULE=on
 
 WORKDIR /go/src/github.com/healthcheck-watchdog

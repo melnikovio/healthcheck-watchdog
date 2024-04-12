@@ -2,13 +2,20 @@ package model
 
 //swagger:model
 type Config struct {
-	// required: true
+	// required: false
+	// deprecated: true
 	Authentication Authentication `json:"authentication,omitempty"`
+
+	// required: false
+	AuthenticationClients map[string]Authentication `json:"authenticationClients,omitempty"`
+
 	// required: true
 	Jobs []Job `json:"jobs,omitempty"`
 
+	// required: false
 	WatchDog WatchDog `json:"watchdog,omitempty"`
 
+	// required: false
 	LogLevel string `json:"loglevel,omitempty"`
 }
 

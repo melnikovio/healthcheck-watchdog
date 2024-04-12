@@ -77,8 +77,8 @@ func (hc *HttpClient) request(job *model.Job, method string, url string) *model.
 }
 
 func (hc *HttpClient) getHttpClient(job *model.Job) *http.Client {
-	if job.AuthEnabled {
-		return hc.authClient.GetClient()
+	if job.Auth.Enabled {
+		return hc.authClient.GetClient(job.Auth.Client)
 	} else {
 		return hc.httpClient
 	}

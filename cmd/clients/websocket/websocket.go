@@ -81,17 +81,17 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 		wc.connections.Delete(model.NewConnection(job.Id, job.Url))
 		result := &model.TaskResult{
-			Id:       job.Id,
-			Result:   false,
-			Running:  false,
+			Id:      job.Id,
+			Result:  false,
+			Running: false,
 		}
 		channel <- result
 
 		return nil
 	}
 
-	if job.AuthEnabled {
-		auth := model.AuthRequest{AccessToken: wc.authClient.GetToken().AccessToken}
+	if job.Auth.Enabled {
+		auth := model.AuthRequest{AccessToken: wc.authClient.GetToken(job.Auth.Client).AccessToken}
 		authMessage, _ := json.Marshal(auth)
 
 		err = c.WriteMessage(websocket.TextMessage, authMessage)

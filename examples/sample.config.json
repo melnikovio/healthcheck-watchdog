@@ -21,7 +21,7 @@
     },
     {
       "id": "healthcheck_udl_rtdb_data_ws",
-      "desc": "Реальные данные (Websocket)",
+      "desc": "Real-time data (Websocket)",
       "type": "websocket",
       "urls": [
         "wss://url/getintervaldata?seconds=2&uid=e5836662-2103-4f80-a526-fe7821c24253"
@@ -31,7 +31,7 @@
     },
     {
       "id": "healthcheck_udl_dfa_data",
-      "desc": "Архивные данные",
+      "desc": "Archive data",
       "type": "http_get",
       "urls": [
         "1https://url/value?time=2021-03-20T13%3A17%3A20.000Z"

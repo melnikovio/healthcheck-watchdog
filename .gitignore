@@ -19,3 +19,5 @@ vendor/
 config*.json
 
 .DS_Store
+
+gitleaks.json

@@ -36,29 +36,37 @@ func NewExporter(config *model.Config) *Exporter {
 	// Register counters
 	exporter.jobsCounters = make(map[string]*Counter, len(config.Jobs))
 	for _, job := range config.Jobs {
+		labels := prometheus.Labels(job.MetricLabels)
+
 		downtime := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_downtime", job.Id),
-			Help: job.Description,
+			Name:        fmt.Sprintf("%s_downtime", job.MetricName),
+			Help:        job.Description,
+			ConstLabels: prometheus.Labels(labels),
 		})
 		status := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_status", job.Id),
-			Help: fmt.Sprintf("%s is working (0: no, 1: yes)", job.Description),
+			Name:        fmt.Sprintf("%s_status", job.MetricName),
+			Help:        fmt.Sprintf("%s is working (0: no, 1: yes)", job.Description),
+			ConstLabels: prometheus.Labels(labels),
 		})
 		messagesCount := promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_messages_count", job.Id),
-			Help: fmt.Sprintf("%s amount of received messages", job.Description),
+			Name:        fmt.Sprintf("%s_messages_count", job.MetricName),
+			Help:        fmt.Sprintf("%s amount of received messages", job.Description),
+			ConstLabels: prometheus.Labels(labels),
 		}, []string{"uid"})
 		responseTime := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_response_time", job.Id),
-			Help: fmt.Sprintf("%s response time length", job.Description),
+			Name:        fmt.Sprintf("%s_response_time", job.MetricName),
+			Help:        fmt.Sprintf("%s response time length", job.Description),
+			ConstLabels: prometheus.Labels(labels),
 		})
 		failedAttempts := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_failed_attempts_count", job.Id),
-			Help: fmt.Sprintf("%s failed attempts count", job.Description),
+			Name:        fmt.Sprintf("%s_failed_attempts_count", job.MetricName),
+			Help:        fmt.Sprintf("%s failed attempts count", job.Description),
+			ConstLabels: prometheus.Labels(labels),
 		})
 		watchdogAction := promauto.NewGauge(prometheus.GaugeOpts{
-			Name: fmt.Sprintf("%s_watchdog_action_count", job.Id),
-			Help: fmt.Sprintf("%s amount of watchdog actions", job.Description),
+			Name:        fmt.Sprintf("%s_watchdog_action_count", job.MetricName),
+			Help:        fmt.Sprintf("%s amount of watchdog actions", job.Description),
+			ConstLabels: prometheus.Labels(labels),
 		})
 		exporter.jobsCounters[job.Id] = &Counter{
 			job:            job,
@@ -70,7 +78,9 @@ func NewExporter(config *model.Config) *Exporter {
 			watchdogAction: watchdogAction,
 		}
 
-		log.Info(fmt.Sprintf("Registered counters for job %s", job.Id))
+		log.Info(
+			fmt.Sprintf(
+				"Registered counters with base metric name %s for job %s", job.MetricName, job.Id))
 	}
 
 	// Channel for task results

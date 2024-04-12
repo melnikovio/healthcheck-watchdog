@@ -10,3 +10,8 @@ const (
 const (
 	RedisFlushAll = "FLUSHALL"
 )
+
+// config
+const (
+	DefaultClientId = "default"
+)
