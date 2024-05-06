@@ -102,10 +102,8 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 	var resetTimer func()
 	if job.ResponseTimeout != 0 {
-		// Переменная для хранения таймера
-		var timer *time.Timer
-
 		// Функция для перезапуска таймера
+		var timer *time.Timer
 		resetTimer = func() {
 			if timer != nil {
 				timer.Stop()
@@ -120,6 +118,12 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 				}
 
 				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
+				result := &model.TaskResult{
+					Id:      job.Id,
+					Result:  false,
+					Running: false,
+				}
+				channel <- result
 			})
 		}
 	}
