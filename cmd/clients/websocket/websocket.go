@@ -100,33 +100,37 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		}
 	}
 
-	var resetTimer func()
-	if job.ResponseTimeout != 0 {
-		// Функция для перезапуска таймера
-		var timer *time.Timer
-		resetTimer = func() {
-			if timer != nil {
-				timer.Stop()
-			}
-			timer = time.AfterFunc(time.Duration(job.ResponseTimeout)*time.Second, func() {
-				log.Error(
-					fmt.Sprintf("%s. No messages received in %d seconds. Closing connection.",
-						job.Id, job.ResponseTimeout))
-				err := c.Close()
-				if err != nil {
-					log.Error(fmt.Sprintf("%s. Received ws error (%s) on close: %s", job.Id, job.Url, err.Error()))
-				}
+	// var resetTimer func()
+	// if job.ResponseTimeout != 0 {
+	// 	// Функция для перезапуска таймера
+	// 	var timer *time.Timer
+	// 	resetTimer = func() {
+	// 		if timer != nil {
+	// 			timer.Stop()
+	// 		}
+	// 		timer = time.AfterFunc(time.Duration(job.ResponseTimeout)*time.Second, func() {
+	// 			log.Error(
+	// 				fmt.Sprintf("%s. No messages received in %d seconds. Closing connection.",
+	// 					job.Id, job.ResponseTimeout))
 
-				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
-				result := &model.TaskResult{
-					Id:      job.Id,
-					Result:  false,
-					Running: false,
-				}
-				channel <- result
-			})
-		}
-	}
+	// 			c.SetD
+	// 			err := c.Close()
+	// 			if err != nil {
+	// 				log.Error(fmt.Sprintf("%s. Received ws error (%s) on close: %s", job.Id, job.Url, err.Error()))
+	// 			}
+
+	// 			wc.connections.Delete(model.NewConnection(job.Id, job.Url))
+	// 			result := &model.TaskResult{
+	// 				Id:      job.Id,
+	// 				Result:  false,
+	// 				Running: false,
+	// 			}
+	// 			channel <- result
+	// 		})
+	// 	}
+	// }
+
+	c.SetReadDeadline(time.Now().Add(time.Duration(job.ResponseTimeout)*time.Second))
 
 	go func() {
 		start := time.Now()
@@ -156,9 +160,9 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 			log.Info(fmt.Sprintf("%s. Received message: %s", job.Id, message))
 
-			if resetTimer != nil && false {
-				resetTimer()
-			}
+			// if resetTimer != nil && false {
+			// 	resetTimer()
+			// }
 
 			result := &model.TaskResult{
 				Id:       job.Id,
@@ -178,6 +182,8 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 			channel <- result
 
+			c.SetReadDeadline(time.Now().Add(time.Duration(job.ResponseTimeout)*time.Second))
+			
 			start = time.Now()
 		}
 	}()
