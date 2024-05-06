@@ -114,7 +114,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 						job.Id, job.ResponseTimeout))
 				err := c.Close()
 				if err != nil {
-					log.Error(fmt.Sprintf("%s. Received ws (%s) error on close: %s", job.Id, job.Url, err.Error()))
+					log.Error(fmt.Sprintf("%s. Received ws error (%s) on close: %s", job.Id, job.Url, err.Error()))
 				}
 
 				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
@@ -133,13 +133,13 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				log.Error(fmt.Sprintf("%s. Received ws (%s) error: %s", job.Id, job.Url, err.Error()))
+				log.Error(fmt.Sprintf("%s. Received ws error (%s): %s", job.Id, job.Url, err.Error()))
 				err := c.Close()
 				if err != nil {
-					log.Error(fmt.Sprintf("%s. Received ws (%s) error on close: %s", job.Id, job.Url, err.Error()))
+					log.Error(fmt.Sprintf("%s. Received ws error (%s) on close: %s", job.Id, job.Url, err.Error()))
 				}
 
-				log.Error(fmt.Sprintf("%s. Websocket closed", job.Id))
+				log.Info(fmt.Sprintf("%s. Websocket closed", job.Id))
 
 				wc.connections.Delete(model.NewConnection(job.Id, job.Url))
 
@@ -156,7 +156,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 			log.Info(fmt.Sprintf("%s. Received message: %s", job.Id, message))
 
-			if resetTimer != nil {
+			if resetTimer != nil && false {
 				resetTimer()
 			}
 
