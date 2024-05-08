@@ -134,7 +134,7 @@ var routes = Routes{
 		"Health",
 		"GET",
 		"health/startup",
-		Handler{H: api.Health},
+		Handler{H: api.Startup},
 	},
 
 	// swagger:operation GET /health/readiness Health Health
@@ -157,7 +157,7 @@ var routes = Routes{
 		"Health",
 		"GET",
 		"health/readiness",
-		Handler{H: api.Health},
+		Handler{H: api.Ready},
 	},
 
 	// swagger:operation GET /health/liveness Health Health
@@ -180,6 +180,6 @@ var routes = Routes{
 		"Health",
 		"GET",
 		"health/liveness",
-		Handler{H: api.Health},
+		Handler{H: api.Live},
 	},
 }

@@ -173,7 +173,15 @@ func (m *Manager) resultProcessor(resultChan <-chan *model.TaskResult) {
 	}
 }
 
-// Get status for healthcheck
-func (m *Manager) Status() (bool, error) {
-	return true, nil
+// Get readiness for healthcheck
+func (m *Manager) Ready() (bool, error) {
+	return m.config != nil && 
+		len(m.executors) > 0 && 
+		m.exporter == nil, nil
 }
+
+// Get liveness for healthcheck
+func (m *Manager) Live() (bool, error) {
+	return len(m.Jobs) > 0, nil
+}
+

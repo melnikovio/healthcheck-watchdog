@@ -26,20 +26,19 @@ func NewWsClient(authClient *authentication.AuthClient, config *model.Config) *W
 	}
 }
 
-// SafeMap представляет потокобезопасную map[string]string
+// SafeMap for connections pool
 type Connections struct {
 	mu          sync.RWMutex
 	connections map[model.Connection]*websocket.Conn
 }
 
-// NewSafeMap создает новый экземпляр SafeMap
 func NewConnections() *Connections {
 	return &Connections{
 		connections: make(map[model.Connection]*websocket.Conn),
 	}
 }
 
-// Get возвращает значение по ключу из SafeMap
+// Get connection
 func (m *Connections) Get(key model.Connection) (*websocket.Conn, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -47,20 +46,21 @@ func (m *Connections) Get(key model.Connection) (*websocket.Conn, bool) {
 	return value, ok
 }
 
-// Set устанавливает значение по ключу в SafeMap
+// Set connection
 func (m *Connections) Set(key model.Connection, value *websocket.Conn) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.connections[key] = value
 }
 
-// Delete удаляет значение по ключу из SafeMap
+// Delete connection
 func (m *Connections) Delete(key model.Connection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.connections, key)
 }
 
+// Execute job
 func (wc *WsClient) Execute(job *model.Job, channel chan *model.TaskResult) {
 	for _, u := range job.Urls {
 		runningJob := model.CreateRunningJob(job, u)
@@ -72,9 +72,11 @@ func (wc *WsClient) Execute(job *model.Job, channel chan *model.TaskResult) {
 	}
 }
 
+// Connect to ws
 func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResult) *websocket.Conn {
 	log.Info(fmt.Sprintf("%s. Registering websocket url: %s", job.Id, job.Url))
 
+	// Connect to WS
 	c, _, err := websocket.DefaultDialer.Dial(job.Url, nil)
 	if err != nil {
 		log.Error(fmt.Sprintf("%s. Received connect error: %s", job.Id, err.Error()))
@@ -90,6 +92,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		return nil
 	}
 
+	// Send authentication message
 	if job.Auth.Enabled {
 		auth := model.AuthRequest{AccessToken: wc.authClient.GetToken(job.Auth.Client).AccessToken}
 		authMessage, _ := json.Marshal(auth)
@@ -100,41 +103,23 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		}
 	}
 
-	// var resetTimer func()
-	// if job.ResponseTimeout != 0 {
-	// 	// Функция для перезапуска таймера
-	// 	var timer *time.Timer
-	// 	resetTimer = func() {
-	// 		if timer != nil {
-	// 			timer.Stop()
-	// 		}
-	// 		timer = time.AfterFunc(time.Duration(job.ResponseTimeout)*time.Second, func() {
-	// 			log.Error(
-	// 				fmt.Sprintf("%s. No messages received in %d seconds. Closing connection.",
-	// 					job.Id, job.ResponseTimeout))
-
-	// 			c.SetD
-	// 			err := c.Close()
-	// 			if err != nil {
-	// 				log.Error(fmt.Sprintf("%s. Received ws error (%s) on close: %s", job.Id, job.Url, err.Error()))
-	// 			}
-
-	// 			wc.connections.Delete(model.NewConnection(job.Id, job.Url))
-	// 			result := &model.TaskResult{
-	// 				Id:      job.Id,
-	// 				Result:  false,
-	// 				Running: false,
-	// 			}
-	// 			channel <- result
-	// 		})
-	// 	}
+	// // Set deadline for messages
+	// if err := c.SetReadDeadline(
+	// 	time.Now().Add(time.Duration(job.ResponseTimeout) * time.Second)); err != nil {
+	// 	log.Error(fmt.Sprintf("%s. Set read deadline error: %s", job.Id, err.Error()))
 	// }
 
-	c.SetReadDeadline(time.Now().Add(time.Duration(job.ResponseTimeout)*time.Second))
-
+	// Receive messages
 	go func() {
 		start := time.Now()
 		for {
+			// Set read timer
+			if err := c.SetReadDeadline(
+				time.Now().Add(time.Duration(job.ResponseTimeout) * time.Second)); err != nil {
+				log.Error(fmt.Sprintf("%s. Set read deadline error: %s", job.Id, err.Error()))
+			}
+
+			// Read messages
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				log.Error(fmt.Sprintf("%s. Received ws error (%s): %s", job.Id, job.Url, err.Error()))
@@ -160,10 +145,6 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 			log.Info(fmt.Sprintf("%s. Received message: %s", job.Id, message))
 
-			// if resetTimer != nil && false {
-			// 	resetTimer()
-			// }
-
 			result := &model.TaskResult{
 				Id:       job.Id,
 				Result:   true,
@@ -182,8 +163,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 
 			channel <- result
 
-			c.SetReadDeadline(time.Now().Add(time.Duration(job.ResponseTimeout)*time.Second))
-			
+			// Reset messages timer
 			start = time.Now()
 		}
 	}()
