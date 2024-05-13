@@ -67,13 +67,14 @@ func (wc *WsClient) Execute(job *model.Job, channel chan *model.TaskResult) {
 		connection := model.NewConnection(job.Id, u)
 		_, ok := wc.connections.Get(connection)
 		if !ok {
-			wc.connections.Set(connection, wc.connect(runningJob, channel))
+			wc.connections.Set(connection, &websocket.Conn{})
+			wc.connect(runningJob, channel)
 		}
 	}
 }
 
 // Connect to ws
-func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResult) *websocket.Conn {
+func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResult) {
 	log.Info(fmt.Sprintf("%s. Registering websocket url: %s", job.Id, job.Url))
 
 	// Connect to WS
@@ -89,7 +90,7 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		}
 		channel <- result
 
-		return nil
+		return
 	}
 
 	// Send authentication message
@@ -167,6 +168,4 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 			start = time.Now()
 		}
 	}()
-
-	return c
 }
