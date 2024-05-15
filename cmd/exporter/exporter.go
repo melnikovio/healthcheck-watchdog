@@ -30,7 +30,7 @@ type Counter struct {
 func NewExporter(config *model.Config) *Exporter {
 	exporter := Exporter{
 		config:  config,
-		Channel: make(chan model.TaskStatus),
+		Channel: make(chan model.TaskStatus, len(config.Jobs)),
 	}
 
 	// Register counters

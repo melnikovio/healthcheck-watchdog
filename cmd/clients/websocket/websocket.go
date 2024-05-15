@@ -104,12 +104,6 @@ func (wc *WsClient) connect(job *model.RunningJob, channel chan *model.TaskResul
 		}
 	}
 
-	// // Set deadline for messages
-	// if err := c.SetReadDeadline(
-	// 	time.Now().Add(time.Duration(job.ResponseTimeout) * time.Second)); err != nil {
-	// 	log.Error(fmt.Sprintf("%s. Set read deadline error: %s", job.Id, err.Error()))
-	// }
-
 	// Receive messages
 	go func() {
 		start := time.Now()

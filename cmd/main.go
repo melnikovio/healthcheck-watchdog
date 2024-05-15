@@ -9,7 +9,6 @@ import (
 	"github.com/healthcheck-watchdog/cmd/configuration"
 	"github.com/healthcheck-watchdog/cmd/exporter"
 	"github.com/healthcheck-watchdog/cmd/manager"
-	"github.com/healthcheck-watchdog/cmd/watchdog"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,11 +20,8 @@ func main() {
 	// initialize metrics exporter. panic on error
 	exporter := exporter.NewExporter(config)
 
-	// initialize watchdog module
-	watchdog := watchdog.NewWatchDog(config)
-
 	// initialize task manager
-	manager := manager.NewManager(exporter, watchdog, config)
+	manager := manager.NewManager(exporter, config)
 
 	// initialize api router
 	router := api.NewRouter(manager)

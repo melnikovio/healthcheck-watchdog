@@ -15,7 +15,7 @@ func TestJobMap_CreateOrUpdate(t *testing.T) {
 	}
 
 	// Создание новой задачи
-	manager.CreateOrUpdateTask("task1", func(task *model.TaskStatus) {
+	manager.CreateOrUpdateTask("task1", nil, func(task *model.TaskStatus) {
 		task.Id = "Task 1"
 		task.Running = true
 	})
@@ -24,7 +24,7 @@ func TestJobMap_CreateOrUpdate(t *testing.T) {
 	assert.NotNil(t, manager.GetTask("task1"))
 
 	// Обновление существующей задачи
-	manager.CreateOrUpdateTask("task1", func(task *model.TaskStatus) {
+	manager.CreateOrUpdateTask("task1", nil, func(task *model.TaskStatus) {
 		task.Running = false
 	})
 
@@ -38,7 +38,7 @@ func TestJobMap_CreateOrUpdate_NewTask(t *testing.T) {
 	}
 
 	// Создание новой задачи с использованием функции обновления
-	manager.CreateOrUpdateTask("task1", func(task *model.TaskStatus) {
+	manager.CreateOrUpdateTask("task1", nil, func(task *model.TaskStatus) {
 		task.Id = "Task 1"
 		task.Running = true
 	})
@@ -57,7 +57,7 @@ func TestJobMap_CreateOrUpdate_UpdateTask(t *testing.T) {
 	}
 
 	// Обновление существующей задачи с использованием функции обновления
-	manager.CreateOrUpdateTask("task1", func(task *model.TaskStatus) {
+	manager.CreateOrUpdateTask("task1", nil, func(task *model.TaskStatus) {
 		task.Running = false
 	})
 
