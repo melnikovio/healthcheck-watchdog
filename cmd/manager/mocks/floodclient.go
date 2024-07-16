@@ -5,7 +5,7 @@ import (
 )
 
 type MockFloodClient struct {
-	channel      chan model.TaskStatus
+	channel chan model.TaskStatus
 }
 
 func NewMockFloodClient(config *model.Config) *MockFloodClient {
@@ -18,7 +18,7 @@ func (mc *MockFloodClient) Execute(job *model.Job, channel chan *model.TaskResul
 	result := &model.TaskResult{
 		Id:      job.Id,
 		Running: true,
-		Result:   true,
+		Result:  true,
 	}
 
 	for i := 0; i < 100; i++ {

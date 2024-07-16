@@ -12,16 +12,14 @@ import (
 )
 
 var emptyConfig = model.Config{
-	Jobs: []model.Job{
-
-	},
+	Jobs: []model.Job{},
 }
 
 var configOneJob = model.Config{
 	Jobs: []model.Job{
 		{
-			Id: "test",
-			Type: "http_get",
+			Id:      "test",
+			Type:    "http_get",
 			Timeout: 1,
 		},
 	},

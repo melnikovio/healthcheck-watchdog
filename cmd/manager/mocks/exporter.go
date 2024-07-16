@@ -4,17 +4,16 @@ import (
 	"github.com/healthcheck-watchdog/cmd/model"
 )
 
-
 type MockExporter struct {
-	channel      chan model.TaskStatus
-	Tasks int
+	channel chan model.TaskStatus
+	Tasks   int
 }
 
 func NewMockExporter(config *model.Config) *MockExporter {
 	exporter := MockExporter{
 		channel: make(chan model.TaskStatus, len(config.Jobs)),
 	}
-	
+
 	go exporter.resultProcessor(exporter.channel)
 
 	return &exporter

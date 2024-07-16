@@ -5,7 +5,7 @@ import (
 )
 
 type MockClient struct {
-	channel      chan model.TaskStatus
+	channel chan model.TaskStatus
 }
 
 func NewMockClient(config *model.Config) *MockClient {
@@ -18,7 +18,7 @@ func (mc *MockClient) Execute(job *model.Job, channel chan *model.TaskResult) {
 	result := &model.TaskResult{
 		Id:      job.Id,
 		Running: false,
-		Result:   true,
+		Result:  true,
 	}
 	channel <- result
 }

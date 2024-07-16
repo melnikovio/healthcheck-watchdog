@@ -125,7 +125,7 @@ func (ws *WatchDogClient) isWatchdogShoudRun(task *model.TaskStatus) bool {
 
 func (ws *WatchDogClient) Execute(job *model.Job) {
 	log.Info(fmt.Sprintf("Started watchdog actions: %v", job.Id))
-	
+
 	ws.setTime(job.Id)
 
 	for _, jobAction := range job.WatchDogAction.Actions {
