@@ -18,7 +18,11 @@ type Fail struct {
 	RestartTime int64 `json:"restartTime,omitempty"`
 }
 
-type WatchDog struct {
+type WatchDog interface {
+	GetChannel() chan model.TaskStatus
+}
+
+type WatchDogClient struct {
 	cluster *clients.KubernetesClient
 	redis   *redis.Redis
 	config  *model.Config
@@ -27,14 +31,14 @@ type WatchDog struct {
 	Channel chan model.TaskStatus
 }
 
-func NewWatchDog(k8sclient *clients.KubernetesClient, config *model.Config) *WatchDog {
+func NewWatchDog(k8sclient *clients.KubernetesClient, config *model.Config) *WatchDogClient {
 	if config.WatchDog.Namespace == "" &&
 		len(config.WatchDog.Actions) == 0 {
 		log.Info("Missing watchdog configuration. Watchdog configuration ignored.")
 		return nil
 	}
 
-	wd := WatchDog{
+	wd := WatchDogClient{
 		cluster: k8sclient,
 		redis:   redis.NewRedis(),
 		Channel: make(chan model.TaskStatus, len(config.Jobs)),
@@ -49,7 +53,7 @@ func NewWatchDog(k8sclient *clients.KubernetesClient, config *model.Config) *Wat
 }
 
 // Process results from tasks
-func (ws *WatchDog) resultProcessor(resultChan <-chan model.TaskStatus) {
+func (ws *WatchDogClient) resultProcessor(resultChan <-chan model.TaskStatus) {
 	for result := range resultChan {
 		if result.Job == nil || !result.Job.WatchDogAction.Enabled {
 			return
@@ -67,7 +71,7 @@ func (ws *WatchDog) resultProcessor(resultChan <-chan model.TaskStatus) {
 }
 
 // Set status
-func (ws *WatchDog) setStatus(task *model.TaskStatus) {
+func (ws *WatchDogClient) setStatus(task *model.TaskStatus) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -86,7 +90,7 @@ func (ws *WatchDog) setStatus(task *model.TaskStatus) {
 }
 
 // Set status
-func (ws *WatchDog) setTime(id string) {
+func (ws *WatchDogClient) setTime(id string) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -97,7 +101,7 @@ func (ws *WatchDog) setTime(id string) {
 }
 
 // Set status
-func (ws *WatchDog) getStatus(id string) *Fail {
+func (ws *WatchDogClient) getStatus(id string) *Fail {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 
@@ -110,7 +114,7 @@ func (ws *WatchDog) getStatus(id string) *Fail {
 }
 
 // Check if watchdog should run
-func (ws *WatchDog) isWatchdogShoudRun(task *model.TaskStatus) bool {
+func (ws *WatchDogClient) isWatchdogShoudRun(task *model.TaskStatus) bool {
 	if !task.Job.WatchDogAction.Enabled {
 		return false
 	}
@@ -119,7 +123,7 @@ func (ws *WatchDog) isWatchdogShoudRun(task *model.TaskStatus) bool {
 		(time.Now().Unix()-ws.getStatus(task.Job.Id).RestartTime) > task.Job.WatchDogAction.AwaitAfterRestart
 }
 
-func (ws *WatchDog) Execute(job *model.Job) {
+func (ws *WatchDogClient) Execute(job *model.Job) {
 	log.Info(fmt.Sprintf("Started watchdog actions: %v", job.Id))
 	
 	ws.setTime(job.Id)
@@ -143,4 +147,8 @@ func (ws *WatchDog) Execute(job *model.Job) {
 			}
 		}
 	}
+}
+
+func (wc *WatchDogClient) GetChannel() chan model.TaskStatus {
+	return wc.Channel
 }

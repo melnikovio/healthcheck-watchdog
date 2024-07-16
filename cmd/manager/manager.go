@@ -19,25 +19,25 @@ import (
 
 // Task executor module
 type Manager struct {
-	exporter  *exporter.Exporter
-	watchdog  *watchdog.WatchDog
-	config    *model.Config
-	executors map[string]clients.Executor
+	Exporter  exporter.Exporter
+	Watchdog  watchdog.WatchDog
+	Config    *model.Config
+	Executors map[string]clients.Executor
 	Jobs      map[string]*model.TaskStatus
 	mutex     sync.Mutex
 }
 
 // Launch task executor
-func Start(exporter *exporter.Exporter, config *model.Config) {
+func Start(exporter exporter.Exporter, config *model.Config) {
 	NewManager(exporter, config)
 }
 
-func NewManager(exporter *exporter.Exporter, config *model.Config) *Manager {
-	executor := &Manager{
-		config:    config,
-		executors: make(map[string]clients.Executor),
+func NewManager(exporter exporter.Exporter, config *model.Config) *Manager {
+	manager := &Manager{
+		Config:    config,
+		Executors: make(map[string]clients.Executor),
 		Jobs:      make(map[string]*model.TaskStatus),
-		exporter:  exporter,
+		Exporter:  exporter,
 	}
 
 	authClient := authentication.NewAuthClient(config)
@@ -49,17 +49,17 @@ func NewManager(exporter *exporter.Exporter, config *model.Config) *Manager {
 	kubernetesClient, err :=
 		k8sclient.NewKubernetesClient(config)
 	if err != nil {
-		executor.executors["memory"] = kubernetesClient
-		executor.watchdog = watchdog.NewWatchDog(kubernetesClient, config)
+		manager.Executors["memory"] = kubernetesClient
+		manager.Watchdog = watchdog.NewWatchDog(kubernetesClient, config)
 	}
 
-	executor.executors["http_get"] = httpClient
-	executor.executors["http_post"] = httpClient
-	executor.executors["websocket"] = websocketClient
+	manager.Executors["http_get"] = httpClient
+	manager.Executors["http_post"] = httpClient
+	manager.Executors["websocket"] = websocketClient
 
-	go executor.run()
+	go manager.run()
 
-	return executor
+	return manager
 }
 
 // Get task
@@ -98,13 +98,27 @@ func (m *Manager) run() {
 
 	// Infinite runner
 	for {
-		for i := range m.config.Jobs {
-			if m.isTaskShoudRun(&m.config.Jobs[i]) {
-				go m.processTask(&m.config.Jobs[i], resultChan)
+		for i := range m.Config.Jobs {
+			if m.isTaskShoudRun(&m.Config.Jobs[i]) {
+				go m.processTask(&m.Config.Jobs[i], resultChan)
 			}
 		}
 
 		time.Sleep(1 * time.Second)
+	}
+}
+
+// Runner
+func (m *Manager) Run() {
+	// Channel for task results
+	resultChan := make(chan *model.TaskResult)
+	go m.resultProcessor(resultChan)
+
+	// Runner
+	for i := range m.Config.Jobs {
+		if m.isTaskShoudRun(&m.Config.Jobs[i]) {
+			go m.processTask(&m.Config.Jobs[i], resultChan)
+		}
 	}
 }
 
@@ -139,7 +153,7 @@ func (m *Manager) isTaskShoudRun(job *model.Job) bool {
 // Process task to executors
 func (m *Manager) processTask(job *model.Job, resultChan chan *model.TaskResult) {
 	// Searching for clients
-	client, ok := m.executors[job.Type]
+	client, ok := m.Executors[job.Type]
 	if !ok {
 		log.Error(fmt.Sprintf("Client for job type %s not found", job.Type))
 		return
@@ -167,21 +181,21 @@ func (m *Manager) resultProcessor(resultChan <-chan *model.TaskResult) {
 
 		})
 
-		if m.exporter != nil {
-			m.exporter.Channel <- *m.GetTask(result.Id)
+		if m.Exporter != nil {
+			m.Exporter.GetChannel() <- *m.GetTask(result.Id)
 		}
 
-		if m.watchdog != nil {
-			m.watchdog.Channel <- *m.GetTask(result.Id)
+		if m.Watchdog != nil {
+			m.Watchdog.GetChannel() <- *m.GetTask(result.Id)
 		}
 	}
 }
 
 // Get readiness for healthcheck
 func (m *Manager) Ready() (bool, error) {
-	return m.config != nil &&
-		len(m.executors) > 0 &&
-		m.exporter == nil, nil
+	return m.Config != nil &&
+		len(m.Executors) > 0 &&
+		m.Exporter == nil, nil
 }
 
 // Get liveness for healthcheck

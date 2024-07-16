@@ -10,10 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Exporter struct {
+type Exporter interface {
+	GetChannel() chan model.TaskStatus
+}
+
+type PrometheusExporter struct {
 	config       *model.Config
 	jobsCounters map[string]*Counter
-	Channel      chan model.TaskStatus
+	channel      chan model.TaskStatus
 	mutex        sync.Mutex
 }
 
@@ -27,10 +31,10 @@ type Counter struct {
 	watchdogAction prometheus.Gauge
 }
 
-func NewExporter(config *model.Config) *Exporter {
-	exporter := Exporter{
+func NewExporter(config *model.Config) *PrometheusExporter {
+	exporter := PrometheusExporter{
 		config:  config,
-		Channel: make(chan model.TaskStatus, len(config.Jobs)),
+		channel: make(chan model.TaskStatus, len(config.Jobs)),
 	}
 
 	// Register counters
@@ -84,20 +88,24 @@ func NewExporter(config *model.Config) *Exporter {
 	}
 
 	// Channel for task results
-	go exporter.resultProcessor(exporter.Channel)
+	go exporter.resultProcessor(exporter.channel)
 
 	return &exporter
 }
 
+func (ex *PrometheusExporter) GetChannel() chan model.TaskStatus {
+	return ex.channel
+}
+
 // Process results from tasks
-func (ex *Exporter) resultProcessor(resultChan <-chan model.TaskStatus) {
+func (ex *PrometheusExporter) resultProcessor(resultChan <-chan model.TaskStatus) {
 	for result := range resultChan {
 		log.Info(fmt.Sprintf("Exporter: Processed result %v", result))
 		ex.setCounters(&result)
 	}
 }
 
-func (ex *Exporter) setCounters(status *model.TaskStatus) {
+func (ex *PrometheusExporter) setCounters(status *model.TaskStatus) {
 	ex.mutex.Lock()
 	defer ex.mutex.Unlock()
 
