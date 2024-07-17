@@ -19,6 +19,7 @@ FROM scratch
 
 WORKDIR /service
 
+COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /go/src/github.com/healthcheck-watchdog/service .
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
